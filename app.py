@@ -9,11 +9,19 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
+from flask_cors import CORS
 
 load_dotenv()
 token = os.getenv('GITHUB_ACCESS_TOKEN')
 headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
 app = Flask(__name__)
+CORS(app, resources={
+    r"/analyze/*": {
+        "origins": ["http://localhost:3000"],
+        "methods": ["GET"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 def generate_heatmap(data):
     plt.switch_backend('Agg')

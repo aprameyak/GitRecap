@@ -1,28 +1,34 @@
 "use client";
-import react from "react";
 import { useState } from "react";
-import { useEffect } from "react";
-=
+import Display from "./components/Display";
+
 export default function Home() {
   const [username, setUsername] = useState(""); 
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    if (username) {
+      setSubmitted(true);
+    }
+  };
+
   return (
-    <div>
-      <div>
-      Github Wrapped
+    <div className="container">
+      <div className="header">
+        <h1>Github Wrapped</h1>
       </div>
-      <div>
-        <input>
-          Enter a username
-        </input>
-      </div>
-      <div>
-        <button>
+      <div className="input-section">
+        <input 
+          value={username} 
+          onChange={(e) => setUsername(e.target.value)} 
+          type="text" 
+          placeholder="Enter a username"
+        />
+        <button onClick={handleSubmit}>
           Submit
         </button>
       </div>
-      <div>
-        Data will be displayed here
-      </div>
+      {submitted && <Display username={username} />}
     </div>
   );
 }
