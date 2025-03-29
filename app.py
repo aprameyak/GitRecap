@@ -1,19 +1,15 @@
-import requests
-from flask import Flask, jsonify
 import os
 from dotenv import load_dotenv
+import requests
+from flask import Flask, jsonify
+from flask_cors import CORS
 from datetime import datetime, timedelta
 from collections import defaultdict
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import base64
-from io import BytesIO
-from flask_cors import CORS
 
 load_dotenv()
 token = os.getenv('GITHUB_ACCESS_TOKEN')
 headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
+
 app = Flask(__name__)
 CORS(app, resources={
     r"/analyze/*": {
@@ -22,18 +18,6 @@ CORS(app, resources={
         "allow_headers": ["Content-Type", "Authorization"]
     }
 })
-
-def generate_heatmap(data):
-    plt.switch_backend('Agg')
-    fig, ax = plt.subplots(figsize=(12, 2))
-    ax.imshow([data], cmap='Greens', aspect='auto', interpolation='nearest')
-    ax.set_xticks(range(0, 52, 4))
-    ax.set_xticklabels([f'W{i}' for i in range(0, 52, 4)])
-    ax.set_yticks([])
-    buf = BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight', dpi=100)
-    plt.close(fig)
-    return base64.b64encode(buf.getvalue()).decode('utf-8')
 
 @app.route('/analyze/<username>', methods=['GET'])
 def analyze_github(username):
@@ -49,7 +33,6 @@ def analyze_github(username):
 
         now = datetime.now()
         one_year_ago = now - timedelta(days=365)
-        commit_heatmap = [0]*52
         language_bytes = defaultdict(int)
         repo_types = {'personal': 0, 'forked': 0}
         days_active = set()
@@ -68,8 +51,6 @@ def analyze_github(username):
             for commit in commits:
                 if isinstance(commit, dict) and 'commit' in commit:
                     date = datetime.strptime(commit['commit']['author']['date'], '%Y-%m-%dT%H:%M:%SZ')
-                    week_num = min(51, (date - one_year_ago).days // 7)
-                    commit_heatmap[week_num] += 1
                     days_active.add(date.date())
 
         total_language_bytes = sum(language_bytes.values())
@@ -100,8 +81,6 @@ def analyze_github(username):
                 'stars': sum(repo.get('stargazers_count', 0) for repo in repos),
                 'languages': top_languages,
                 'activity': {
-                    'weekly_commits': commit_heatmap,
-                    'heatmap_image': generate_heatmap(commit_heatmap),
                     'streak': current_streak
                 }
             }
