@@ -36,8 +36,12 @@ def analyze_github(username):
         language_bytes = defaultdict(int)
         repo_types = {'personal': 0, 'forked': 0}
         days_active = set()
+        weekly_commits = [0]*52
+        commit_time_distribution = [0]*24
+        contribution_data = []
+        date_count = defaultdict(int)
 
-        for repo in repos[:10]:
+        for repo in repos:
             if repo['fork']:
                 repo_types['forked'] += 1
             else:
@@ -47,17 +51,27 @@ def analyze_github(username):
             for lang, bytes in langs.items():
                 language_bytes[lang] += bytes
 
-            commits = requests.get(f"{repo['url']}/commits?since={one_year_ago.isoformat()}&per_page=50", headers=headers, timeout=10).json()
+            commits = requests.get(f"{repo['url']}/commits?since={one_year_ago.isoformat()}&per_page=100", headers=headers, timeout=10).json()
             for commit in commits:
                 if isinstance(commit, dict) and 'commit' in commit:
                     date = datetime.strptime(commit['commit']['author']['date'], '%Y-%m-%dT%H:%M:%SZ')
+                    week_num = min(51, (date - one_year_ago).days // 7)
+                    weekly_commits[week_num] += 1
                     days_active.add(date.date())
+                    commit_time_distribution[date.hour] += 1
+                    date_str = date.date().isoformat()
+                    date_count[date_str] += 1
+
+        for date_str, count in date_count.items():
+            contribution_data.append({'date': date_str, 'count': count})
 
         total_language_bytes = sum(language_bytes.values())
         top_languages = [{
             'name': lang,
             'percentage': round(bytes/total_language_bytes*100, 1)
         } for lang, bytes in sorted(language_bytes.items(), key=lambda x: -x[1])[:5]]
+
+        top_repos = sorted(repos, key=lambda repo: repo.get('stargazers_count', 0), reverse=True)[:5]
 
         current_streak = 0
         max_streak = 0
@@ -70,6 +84,15 @@ def analyze_github(username):
             else:
                 current_streak = 0
 
+        night_owl = sum(commit_time_distribution[22:] + commit_time_distribution[:4]) > sum(commit_time_distribution) * 0.4
+        weekend_warrior = sum(1 for date in days_active if date.weekday() >= 5) > len(days_active) * 0.3
+        if night_owl:
+            developer_personality = "Night Owl"
+        elif weekend_warrior:
+            developer_personality = "Weekend Warrior"
+        else:
+            developer_personality = "Consistent Contributor"
+
         return jsonify({
             'profile': {
                 'username': username,
@@ -81,8 +104,15 @@ def analyze_github(username):
                 'stars': sum(repo.get('stargazers_count', 0) for repo in repos),
                 'languages': top_languages,
                 'activity': {
-                    'streak': current_streak
-                }
+                    'weekly_commits': weekly_commits,
+                    'streak': max_streak,
+                    'commit_time_distribution': commit_time_distribution,
+                    'contribution_data': contribution_data,
+                    'top_repos': [
+                        {'name': repo['name'], 'stars': repo.get('stargazers_count', 0)} for repo in top_repos
+                    ]
+                },
+                'developer_personality': developer_personality
             }
         })
 
