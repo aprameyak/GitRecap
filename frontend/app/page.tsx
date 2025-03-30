@@ -143,7 +143,7 @@ export default function Home() {
                   d="M10 19l-7-7m0 0l7-7m-7 7h18" 
                 />
               </svg>
-              <span>Try Another Username</span>
+              <span>Back</span>
             </button>
             <Display username={submittedUsername} />
           </div>

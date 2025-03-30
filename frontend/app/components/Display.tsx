@@ -56,6 +56,21 @@ interface GitHubData {
     longest_streak: number;
     favorite_language: string;
   };
+  sentiment?: {
+    positive: number;
+    neutral: number;
+    negative: number;
+    average_polarity: number;
+    common_words: Record<string, number>;
+    commit_types: {
+      feature: number;
+      bugfix: number;
+      refactor: number;
+      docs: number;
+      chore: number;
+      other: number;
+    };
+  };
 }
 
 export default function Display({ username }: DisplayProps) {
@@ -159,8 +174,8 @@ export default function Display({ username }: DisplayProps) {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: `${username}'s GitHub Wrapped`,
-          text: `Check out ${username}'s GitHub activity!`,
+          title: `${username}'s GitRecap`,
+          text: `Check out ${username}'s year in code!`,
           url: window.location.href,
         });
       } else {
@@ -313,6 +328,90 @@ export default function Display({ username }: DisplayProps) {
           </p>
         </div>
       </div>
+
+      {data.sentiment && (
+        <div className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 p-6 rounded-lg border border-white/10">
+          <h3 className="text-xl font-semibold mb-4 text-white">Commit Sentiment</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="text-lg font-medium mb-2">Sentiment Distribution</h4>
+              <div className="flex items-center justify-between mb-1">
+                <span>Positive</span>
+                <span>{data.sentiment.positive} commits</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2.5">
+                <div 
+                  className="bg-green-500 h-2.5 rounded-full" 
+                  style={{ width: `${(data.sentiment.positive / (data.sentiment.positive + data.sentiment.neutral + data.sentiment.negative)) * 100}%` }}
+                ></div>
+              </div>
+
+              <div className="flex items-center justify-between mb-1 mt-3">
+                <span>Neutral</span>
+                <span>{data.sentiment.neutral} commits</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2.5">
+                <div 
+                  className="bg-yellow-500 h-2.5 rounded-full" 
+                  style={{ width: `${(data.sentiment.neutral / (data.sentiment.positive + data.sentiment.neutral + data.sentiment.negative)) * 100}%` }}
+                ></div>
+              </div>
+
+              <div className="flex items-center justify-between mb-1 mt-3">
+                <span>Negative</span>
+                <span>{data.sentiment.negative} commits</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2.5">
+                <div 
+                  className="bg-red-500 h-2.5 rounded-full" 
+                  style={{ width: `${(data.sentiment.negative / (data.sentiment.positive + data.sentiment.neutral + data.sentiment.negative)) * 100}%` }}
+                ></div>
+              </div>
+
+              <p className="mt-4">
+                Average Polarity: <span className="font-semibold">{data.sentiment.average_polarity > 0 ? '😊' : data.sentiment.average_polarity < 0 ? '😞' : '😐'} {data.sentiment.average_polarity}</span>
+              </p>
+            </div>
+
+            <div>
+              <h4 className="text-lg font-medium mb-2">Commit Types</h4>
+              <div className="space-y-2">
+                {Object.entries(data.sentiment.commit_types).map(([type, count]) => (
+                  <div key={type} className="flex items-center">
+                    <span className="w-24 capitalize">{type}</span>
+                    <div className="flex-1 mx-2">
+                      <div className="w-full bg-gray-700 rounded-full h-2.5">
+                        <div 
+                          className="bg-purple-500 h-2.5 rounded-full" 
+                          style={{ width: `${(count / Object.values(data.sentiment.commit_types).reduce((a, b) => a + b, 0)) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <span>{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {Object.keys(data.sentiment.common_words).length > 0 && (
+            <div className="mt-6">
+              <h4 className="text-lg font-medium mb-2">Common Commit Words</h4>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(data.sentiment.common_words).map(([word, count]) => (
+                  <span 
+                    key={word} 
+                    className="px-3 py-1 bg-slate-800/50 rounded-full text-sm"
+                  >
+                    {word} ({count})
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <style jsx global>{`
         .react-calendar-heatmap .color-empty {
