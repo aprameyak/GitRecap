@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getData } from "@/routes/route";
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
@@ -10,8 +10,6 @@ ChartJS.register(
   LinearScale,
   BarElement,
   ArcElement,
-  PointElement,
-  LineElement,
   Title,
   Tooltip,
   Legend
@@ -26,6 +24,9 @@ interface GitHubData {
     username: string;
     avatar_url: string;
     join_date: string;
+    name?: string;
+    bio?: string;
+    location?: string;
   };
   stats: {
     activity: {
@@ -34,6 +35,7 @@ interface GitHubData {
       top_repos: Array<{
         name: string;
         stars: number;
+        description?: string;
       }>;
       commit_time_distribution: number[];
       contribution_data: Array<{
@@ -44,31 +46,36 @@ interface GitHubData {
     languages: Array<{
       name: string;
       percentage: number;
+      color?: string;
     }>;
     repos: number;
     stars: number;
+    followers: number;
+    following: number;
     developer_personality: string;
+    longest_streak: number;
+    favorite_language: string;
   };
 }
 
 export default function Display({ username }: DisplayProps) {
   const [data, setData] = useState<GitHubData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!username) return;
       setLoading(true);
       setError(null);
+      
       try {
         const result = await getData(username);
-        if (!result?.stats) {
-          throw new Error('No data received from server');
+        if (!result) {
+          throw new Error('No data received');
         }
         setData(result);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error fetching data');
+        setError(err instanceof Error ? err.message : 'Failed to fetch data');
         console.error(err);
       } finally {
         setLoading(false);
@@ -80,16 +87,20 @@ export default function Display({ username }: DisplayProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px] bg-slate-900/50 backdrop-blur-sm rounded-xl border border-white/10">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      <div className="flex flex-col items-center justify-center min-h-[400px] bg-slate-900/50 backdrop-blur-sm rounded-xl border border-white/10">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-500"></div>
+        <p className="mt-4 text-gray-400">Loading {username}'s data...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center p-8 bg-red-500/10 backdrop-blur-sm rounded-xl border border-red-500/20">
-        <p className="text-red-400 font-medium">{error}</p>
+      <div className="flex flex-col items-center justify-center min-h-[400px] bg-slate-900/50 backdrop-blur-sm rounded-xl border border-red-500/20 p-8">
+        <div className="text-red-400 mb-4 text-center">
+          <h3 className="text-xl font-semibold mb-2">Error Loading Data</h3>
+          <p>{error}</p>
+        </div>
       </div>
     );
   }
@@ -102,66 +113,45 @@ export default function Display({ username }: DisplayProps) {
     );
   }
 
-  // Process data with fallbacks
-  const weeklyCommits = data.stats.activity?.weekly_commits || Array(52).fill(0);
-  const languages = data.stats.languages || [];
-  const commitTimeDistribution = data.stats.activity?.commit_time_distribution || Array(24).fill(0);
-  const contributionData = data.stats.activity?.contribution_data || [];
-  const developerPersonality = data.stats.developer_personality || "Consistent Contributor";
-
-  // Chart data configurations
-  const weeklyCommitsData = {
-    labels: Array.from({ length: 52 }, (_, i) => `Week ${i + 1}`),
-    datasets: [{
-      label: 'Commits',
-      data: weeklyCommits,
-      backgroundColor: 'rgba(139, 92, 246, 0.5)',
-      borderColor: 'rgba(139, 92, 246, 1)',
-      borderWidth: 1,
-    }]
-  };
-
-  const languageData = {
-    labels: languages.slice(0, 5).map(lang => lang?.name || 'Unknown'),
-    datasets: [{
-      label: 'Language Usage',
-      data: languages.slice(0, 5).map(lang => lang?.percentage || 0),
-      backgroundColor: [
-        'rgba(236, 72, 153, 0.8)',
-        'rgba(139, 92, 246, 0.8)',
-        'rgba(59, 130, 246, 0.8)',
-        'rgba(16, 185, 129, 0.8)',
-        'rgba(249, 115, 22, 0.8)',
-      ],
-      borderWidth: 1,
-    }]
-  };
-
-  const commitTimeData = {
-    labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
-    datasets: [{
-      label: 'Commits',
-      data: commitTimeDistribution,
-      backgroundColor: 'rgba(16, 185, 129, 0.5)',
-      borderColor: 'rgba(16, 185, 129, 1)',
-      borderWidth: 1,
-    }]
-  };
-
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context: any) => `${context.dataset.label}: ${context.raw}`
+      legend: {
+        position: 'top' as const,
+        labels: {
+          color: 'rgba(255, 255, 255, 0.9)',
+          font: {
+            size: 12,
+          }
         }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: 'rgba(255, 255, 255, 0.9)',
+        bodyColor: 'rgba(255, 255, 255, 0.9)',
+        padding: 12,
+        displayColors: true
       }
     },
     scales: {
-      y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
-      x: { grid: { color: 'rgba(255,255,255,0.05)' } }
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(255, 255, 255, 0.05)'
+        },
+        ticks: {
+          color: 'rgba(255, 255, 255, 0.7)'
+        }
+      },
+      x: {
+        grid: {
+          color: 'rgba(255, 255, 255, 0.05)'
+        },
+        ticks: {
+          color: 'rgba(255, 255, 255, 0.7)'
+        }
+      }
     }
   };
 
@@ -170,7 +160,7 @@ export default function Display({ username }: DisplayProps) {
       if (navigator.share) {
         await navigator.share({
           title: `${username}'s GitHub Wrapped`,
-          text: `Check out ${username}'s GitHub activity summary!`,
+          text: `Check out ${username}'s GitHub activity!`,
           url: window.location.href,
         });
       } else {
@@ -183,9 +173,8 @@ export default function Display({ username }: DisplayProps) {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Profile Header */}
-      <div className="flex flex-col md:flex-row items-center gap-6 p-8 bg-slate-900/50 rounded-xl border border-white/10">
+    <div className="space-y-8 animate-fade-in">
+      <div className="flex flex-col md:flex-row items-center gap-6 p-8 bg-slate-900/50 backdrop-blur-sm rounded-xl border border-white/10">
         <img 
           src={data.profile.avatar_url} 
           alt={username} 
@@ -193,18 +182,28 @@ export default function Display({ username }: DisplayProps) {
         />
         <div className="flex-1 text-center md:text-left">
           <h2 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-500 text-transparent bg-clip-text">
-            {data.profile.username}
+            {data.profile.name || data.profile.username}
           </h2>
-          <p className="text-gray-400 mb-6">Joined {data.profile.join_date}</p>
+          {data.profile.bio && <p className="text-gray-400 mt-2">{data.profile.bio}</p>}
+          {data.profile.location && (
+            <p className="text-gray-400 flex items-center justify-center md:justify-start mt-1">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {data.profile.location}
+            </p>
+          )}
+          <p className="text-gray-400 mb-6">Joined {new Date(data.profile.join_date).toLocaleDateString()}</p>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: 'Repositories', value: data.stats.repos },
               { label: 'Stars', value: data.stats.stars },
-              { label: 'Streak', value: `${data.stats.activity.streak} days` },
-              { label: 'Languages', value: languages.length },
+              { label: 'Followers', value: data.stats.followers },
+              { label: 'Following', value: data.stats.following },
             ].map((stat, i) => (
-              <div key={i} className="bg-slate-800/50 p-4 rounded-lg border border-white/5">
+              <div key={i} className="bg-slate-800/50 p-4 rounded-lg border border-white/5 hover:border-violet-500/30 transition-colors">
                 <p className="text-gray-400 text-sm">{stat.label}</p>
                 <p className="text-2xl font-bold text-white">{stat.value}</p>
               </div>
@@ -213,106 +212,143 @@ export default function Display({ username }: DisplayProps) {
         </div>
       </div>
 
-      {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <ChartCard title="Weekly Commits">
-          <Bar data={weeklyCommitsData} options={chartOptions} />
+          <Bar 
+            data={{
+              labels: Array.from({ length: 52 }, (_, i) => `Week ${i + 1}`),
+              datasets: [{
+                label: 'Commits',
+                data: data.stats.activity.weekly_commits,
+                backgroundColor: 'rgba(139, 92, 246, 0.5)',
+                borderColor: 'rgba(139, 92, 246, 1)',
+                borderWidth: 1,
+              }]
+            }} 
+            options={chartOptions} 
+          />
         </ChartCard>
-        
+
         <ChartCard title="Top Languages">
-          <Pie data={languageData} options={chartOptions} />
+          <Pie 
+            data={{
+              labels: data.stats.languages.map(lang => lang.name),
+              datasets: [{
+                data: data.stats.languages.map(lang => lang.percentage),
+                backgroundColor: data.stats.languages.map(lang => lang.color || '#6E40C9'),
+                borderColor: data.stats.languages.map(lang => darkenColor(lang.color || '#6E40C9')),
+                borderWidth: 1
+              }]
+            }} 
+            options={{
+              ...chartOptions,
+              plugins: {
+                ...chartOptions.plugins,
+                legend: {
+                  ...chartOptions.plugins.legend,
+                  position: 'right',
+                }
+              }
+            }} 
+          />
         </ChartCard>
-        
+
         <ChartCard title="When You Code">
-          <Bar data={commitTimeData} options={chartOptions} />
+          <Bar 
+            data={{
+              labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+              datasets: [{
+                label: 'Commits',
+                data: data.stats.activity.commit_time_distribution,
+                backgroundColor: 'rgba(16, 185, 129, 0.5)',
+                borderColor: 'rgba(16, 185, 129, 1)',
+                borderWidth: 1,
+              }]
+            }} 
+            options={chartOptions} 
+          />
         </ChartCard>
-        
+
         <ChartCard title="Contribution Heatmap">
-          <div className="h-full">
-            {contributionData.length > 0 ? (
-              <CalendarHeatmap
-                startDate={new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
-                endDate={new Date()}
-                values={contributionData}
-                classForValue={(value) => {
-                  if (!value?.count) return 'color-empty';
-                  return `color-scale-${Math.min(4, value.count)}`;
-                }}
-                showWeekdayLabels
-                gutterSize={2}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                No contribution data available
-              </div>
-            )}
+          <div className="h-[250px]">
+            <CalendarHeatmap
+              startDate={new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
+              endDate={new Date()}
+              values={data.stats.activity.contribution_data}
+              classForValue={(value) => {
+                if (!value || !value.count) return 'color-empty';
+                const level = Math.min(4, Math.ceil(value.count / 3));
+                return `color-scale-${level}`;
+              }}
+              showWeekdayLabels
+              gutterSize={2}
+              tooltipDataAttrs={(value: any) => ({
+                'data-tooltip': value ? `${value.date}: ${value.count} commits` : 'No data'
+              })}
+            />
           </div>
         </ChartCard>
       </div>
 
-      {/* Highlights Section */}
       <div className="bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 p-6 rounded-lg border border-white/10">
-        <h3 className="text-xl font-semibold mb-4 text-white">Year in Review</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { 
-              label: 'Most Used Language', 
-              value: languages[0]?.name || 'N/A', 
-              subtext: `${languages[0]?.percentage || 0}% of code` 
-            },
-            { 
-              label: 'Longest Streak', 
-              value: `${data.stats.activity.streak} days`, 
-              subtext: 'of consistent coding' 
-            },
-            { 
-              label: 'Developer Personality', 
-              value: developerPersonality, 
-              subtext: 'based on your commit patterns' 
-            },
-          ].map((item, i) => (
-            <div key={i} className="bg-slate-800/50 p-4 rounded-lg text-center">
-              <p className="text-gray-400 text-sm">{item.label}</p>
-              <p className="text-2xl font-bold text-white">{item.value}</p>
-              <p className="text-violet-400">{item.subtext}</p>
+        <h3 className="text-xl font-semibold mb-4 text-white">Developer Personality</h3>
+        <div className="text-center">
+          <p className="text-2xl font-bold text-white mb-2">{data.stats.developer_personality}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="bg-slate-800/50 p-4 rounded-lg border border-white/5">
+              <p className="text-gray-400">Longest Streak</p>
+              <p className="text-2xl font-bold text-white">{data.stats.longest_streak} days</p>
             </div>
-          ))}
+            <div className="bg-slate-800/50 p-4 rounded-lg border border-white/5">
+              <p className="text-gray-400">Favorite Language</p>
+              <p className="text-2xl font-bold text-white">{data.stats.favorite_language}</p>
+            </div>
+          </div>
+          <p className="text-gray-300 mt-4">
+            {data.stats.developer_personality === "Night Owl" 
+              ? "You do most of your coding late at night!"
+              : data.stats.developer_personality === "Weekend Warrior" 
+              ? "You're most active on weekends!"
+              : "You maintain consistent coding habits throughout the week."}
+          </p>
         </div>
       </div>
 
-      {/* Share Button */}
-      <div className="flex justify-center">
-        <button
-          onClick={handleShare}
-          className="bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-semibold py-3 px-8 rounded-lg hover:shadow-lg transition-all"
-        >
-          Share Your GitHub Wrapped
-        </button>
-      </div>
-
       <style jsx global>{`
-        .react-calendar-heatmap .color-empty { 
-          fill: rgba(255, 255, 255, 0.05); 
+        .react-calendar-heatmap .color-empty {
+          fill: #2d374850;
         }
-        .react-calendar-heatmap .color-scale-1 { 
-          fill: rgba(139, 92, 246, 0.3); 
+        .react-calendar-heatmap .color-scale-1 {
+          fill: rgba(139, 92, 246, 0.3);
         }
-        .react-calendar-heatmap .color-scale-2 { 
-          fill: rgba(139, 92, 246, 0.5); 
+        .react-calendar-heatmap .color-scale-2 {
+          fill: rgba(139, 92, 246, 0.5);
         }
-        .react-calendar-heatmap .color-scale-3 { 
-          fill: rgba(139, 92, 246, 0.7); 
+        .react-calendar-heatmap .color-scale-3 {
+          fill: rgba(139, 92, 246, 0.7);
         }
-        .react-calendar-heatmap .color-scale-4 { 
-          fill: rgba(139, 92, 246, 0.9); 
+        .react-calendar-heatmap .color-scale-4 {
+          fill: rgba(139, 92, 246, 0.9);
         }
-        .react-calendar-heatmap text { 
+        .react-calendar-heatmap text {
           fill: rgba(255, 255, 255, 0.7);
-          font-size: 6px; 
+          font-size: 8px;
         }
       `}</style>
     </div>
   );
+}
+
+function darkenColor(hex: string, amount = 20): string {
+  let r = parseInt(hex.substring(1, 3), 16);
+  let g = parseInt(hex.substring(3, 5), 16);
+  let b = parseInt(hex.substring(5, 7), 16);
+  
+  r = Math.max(0, r - amount);
+  g = Math.max(0, g - amount);
+  b = Math.max(0, b - amount);
+  
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
