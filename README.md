@@ -26,8 +26,6 @@ A dynamic analytics dashboard that visualizes GitHub user activity with interact
 
 ## 🛠️ Technical Implementation
 
-### Frontend (`Display.tsx`, `page.tsx`)
-
 #### Technology Stack
 - Next.js 14
 - React with TypeScript
