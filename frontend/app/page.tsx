@@ -1,4 +1,3 @@
-
 "use client";
 import { useState } from 'react';
 import Display from './components/Display';
@@ -46,7 +45,7 @@ export default function Home() {
           <div className="flex flex-col items-center justify-center min-h-[80vh] animate-fade-in">
             <div className="text-center max-w-2xl">
               <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-violet-400 to-fuchsia-500 text-transparent bg-clip-text">
-                GitHub Wrapped
+                GitRecap
               </h1>
               <p className="text-gray-400 mb-8 text-lg">
                 Discover your coding journey with personalized GitHub analytics
@@ -105,7 +104,7 @@ export default function Home() {
                     </>
                   ) : (
                     <>
-                      <span>Generate Wrapped</span>
+                      <span>Generate Recap</span>
                       <svg 
                         className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" 
                         fill="none" 

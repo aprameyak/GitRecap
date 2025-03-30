@@ -1,6 +1,6 @@
-
+"use client";
 import { useState, useEffect } from 'react';
-import { getData } from "@/routes/route";
+import { getData, getPredictionData } from "@/routes/route";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import CalendarHeatmap from 'react-calendar-heatmap';
@@ -79,9 +79,15 @@ interface GitHubData {
   };
 }
 
+interface PredictionData{
+  predictions: number;
+  username: string;
+}
+
 export default function Display({ username }: DisplayProps) {
   const [data, setData] = useState<GitHubData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [predictionData, setPredictionData] = useState<PredictionData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -95,6 +101,12 @@ export default function Display({ username }: DisplayProps) {
           throw new Error('No data received');
         }
         setData(result);
+
+        const predictionResult = await getPredictionData(username);
+        console.log('Prediction Data: ', predictionResult);
+        if (predictionResult) {
+          setPredictionData(predictionResult)
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
         console.error(err);
@@ -104,7 +116,8 @@ export default function Display({ username }: DisplayProps) {
     };
 
     fetchData();
-  }, [username]);
+  }, [username]);  
+
 
   if (loading) {
     return (
@@ -487,26 +500,16 @@ export default function Display({ username }: DisplayProps) {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="font-medium text-white/90">Frequent Words</h4>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(data.sentiment.common_words)
-                  .sort((a, b) => b[1] - a[1])
-                  .slice(0, 12)
-                  .map(([word, count]) => (
-                    <span 
-                      key={word} 
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        count > 5 ? 'bg-blue-500/20 text-blue-400' : 
-                        count > 2 ? 'bg-purple-500/20 text-purple-400' : 
-                        'bg-gray-700 text-gray-400'
-                      }`}
-                    >
-                      {word} <span className="opacity-70">{count}</span>
-                    </span>
-                  ))}
+            {predictionData?.predictions !== undefined && (
+              <div className="bg-gradient-to-r from-indigo-500/10 to-blue-500/10 p-6 rounded-xl border border-white/10 mt-6">
+                <h3 className="text-lg md:text-xl font-semibold text-white">Prediction Data</h3>
+                <div className="mt-4">
+                  <p className="text-gray-300">
+                    Predicted commits in the next year: {predictionData.predictions}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

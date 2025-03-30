@@ -18,6 +18,8 @@ headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.
 
 app = Flask(__name__)
 CORS(app, resources={r"/analyze/*": {"origins": ["http://localhost:3000"]}})
+CORS(app, resources={r"/predict_contributions/*": {"origins": ["http://localhost:3000"]}})
+
 
 def debug_request(response):
     print(f"Request to {response.url}")
