@@ -1,31 +1,36 @@
-<<<<<<< HEAD
-readme
-=======
+# GitRecap
 
-```markdown
-# My Project
+A dynamic analytics dashboard that visualizes GitHub user activity with interactive charts and detailed statistics. This application provides Spotify Wrapped-style insights into coding patterns, repository analytics, and contribution history.
 
-## Description
-This is a placeholder README file. Please replace this description with information about your specific project, its purpose, and key features.
+## 🌟 Core Features
 
-## Technologies Used
-- List your main technologies, frameworks, and languages here
-- Example: Node.js, React, MongoDB etc.
+### Profile Analytics
+- User profile overview with avatar and join date
+- Repository count and total stars
+- Follower and following statistics
+- Bio and location display
 
-## Installation
-# Add installation steps
-npm install # if using npmn with information about your specific project, its purpose, and key features.
+### Activity Visualization
+- Weekly commit patterns over the past year
+- Language distribution with percentage breakdown
+- Commit time distribution (24-hour activity pattern)
+- Top repositories by stars
+- Contribution calendar heatmap
 
-## Technologies Used
-- List your main technologies, frameworks, and languages here
-- Example: Node.js, React, MongoDB etc.
-d examples
- My Project
+### Interactive Features
+- Responsive charts and graphs
+- Share functionality with Web Share API fallback
+- Loading states with animations
+- Error handling with user-friendly messages
+- Mobile-responsive design
 
-## Description
-This is a placeholder README file. Please replace this description with information about your specific project, its purpose, and key features.
+## 🛠️ Technical Implementation
 
-## Technologies Used
-- List your main technologies, frameworks, and languages here
-- Example: Node.js, React, MongoDB etc.
->>>>>>> 786deb1 (readme)
+### Frontend (`Display.tsx`, `page.tsx`)
+
+#### Technology Stack
+- Next.js 14
+- React with TypeScript
+- TailwindCSS for styling
+- Chart.js for data visualization
+- React Calendar Heatmap
