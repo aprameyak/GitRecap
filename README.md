@@ -5,7 +5,7 @@
 ![TypeScript](https://img.shields.io/badge/Backend-TypeScript-blue?logo=typescript)  
 ![TailwindCSS](https://img.shields.io/badge/Styling-TailwindCSS-blue?logo=tailwindcss)  
 ![Chart.js](https://img.shields.io/badge/Data_Visualization-Chart.js-green?logo=chart.js)  
-![Vercel](https://img.shields.io/badge/Deployment-Vercel-black?logo=vercel)  
+
 
 ## 📌 What it Does  
 
