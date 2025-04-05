@@ -1,51 +1,35 @@
-# 📊 GitRecap
+# GitRecap
 
-![Next.js](https://img.shields.io/badge/Frontend-Next.js-blue?logo=next.js)  
-![React](https://img.shields.io/badge/Frontend-React.js-blue?logo=react)  
-![TypeScript](https://img.shields.io/badge/Backend-TypeScript-blue?logo=typescript)  
-![TailwindCSS](https://img.shields.io/badge/Styling-TailwindCSS-blue?logo=tailwindcss)  
-![Chart.js](https://img.shields.io/badge/Data_Visualization-Chart.js-green?logo=chart.js)  
+![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=white&style=for-the-badge)
+![React.js](https://img.shields.io/badge/React.js-61DAFB?logo=react&logoColor=white&style=for-the-badge)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white&style=for-the-badge)
+![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-06B6D4?logo=tailwindcss&logoColor=white&style=for-the-badge)
+![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?logo=chart.js&logoColor=white&style=for-the-badge)
 
+## About
 
-## 📌 What it Does  
+**GitRecap** is an interactive GitHub activity dashboard that visualizes coding patterns, repository analytics, and contribution history in a **Spotify Wrapped-style** format. It helps developers gain insights into their GitHub habits and overall productivity.
 
-**GitRecap** is an interactive **GitHub activity dashboard** that visualizes coding patterns, repository analytics, and contribution history in a **Spotify Wrapped-style** presentation. It helps developers analyze their GitHub activity, providing insights on weekly commits, language distribution, and more.
+## Features
 
-## 🚀 How We Built It  
+- **Profile Analytics**: View GitHub profile info including avatar, join date, stars, and repo/follower counts  
+- **Weekly Commit Patterns**: Visualize weekly commit trends over the past year  
+- **Language Distribution**: Breakdown of programming languages used, with percentages  
+- **Commit Time Distribution**: Displays most active commit hours during the day  
+- **Top Repositories**: Lists repositories sorted by star count  
+- **Contribution Calendar**: Heatmap of contribution activity  
 
-### Frontend Technologies:  
-- **Next.js:** For building the application with server-side rendering and efficient page routing.  
-- **React.js:** For building the user interface with dynamic interactions.  
-- **TypeScript:** Ensures type safety and scalability in the frontend.  
-- **TailwindCSS:** For responsive and utility-first styling.  
+### Interactive Highlights
 
-### Data Visualization:  
-- **Chart.js:** For creating interactive charts to visualize commit patterns, language usage, and more.  
-- **React Calendar Heatmap:** For rendering the contribution calendar as a heatmap.
+- Responsive and animated charts built with **Chart.js**  
+- Dynamic heatmap using **React Calendar Heatmap**  
+- Shareable GitHub activity summaries  
+- Smooth loading states and intuitive error handling  
+- Fully mobile-responsive UI
 
-## 🚀 Features  
+## Technology Stack
 
-- **Profile Analytics:** Displays user avatar, join date, repository count, total stars, and follower/following stats.  
-- **Weekly Commit Patterns:** Visualizes weekly commit activity over the past year.  
-- **Language Distribution:** Shows a breakdown of languages used with percentage distribution.  
-- **Commit Time Distribution:** Displays commit activity patterns across a 24-hour day.  
-- **Top Repositories:** Lists repositories with the most stars.  
-- **Contribution Calendar:** Shows a heatmap of user contributions.  
-
-### Interactive Features:
-- **Responsive Charts and Graphs:** Fully interactive and dynamic visualizations.  
-- **Share Functionality:** Share your GitHub activity insights with others.  
-- **Loading States & Animations:** Engaging animations during data fetching.  
-- **Error Handling:** Provides user-friendly error messages.  
-- **Mobile-Responsive Design:** Fully optimized for mobile screens.
-
-## 🔗 Integration  
-
-- **GitHub API:** Fetches user data, repository stats, and activity history for visualization.  
-- **Chart.js:** Used for generating interactive and real-time charts.  
-- **React Calendar Heatmap:** Displays a heatmap of user contributions.
-
-## 🌐 Live Deployment  
-
-- **View Here:** [GitRecap](https://git-recap-flax.vercel.app/)
-
+- **Frontend**: Next.js, React.js, TypeScript  
+- **Styling**: TailwindCSS  
+- **Data Visualization**: Chart.js, React Calendar Heatmap  
+- **API Integration**: GitHub API (for user stats and activity)
