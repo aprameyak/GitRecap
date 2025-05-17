@@ -1,18 +1,30 @@
 import os
 from dotenv import load_dotenv
 import requests
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from datetime import datetime, timedelta
 from collections import defaultdict
 from textblob import TextBlob
 import time
+from functools import wraps
+import redis
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 load_dotenv()
 token = os.getenv('GITHUB_ACCESS_TOKEN')
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 
 if not token:
     raise ValueError("No GITHUB_ACCESS_TOKEN found in .env file")
+
+# Initialize Redis for caching
+try:
+    redis_client = redis.from_url(redis_url)
+except redis.ConnectionError:
+    print("Warning: Redis connection failed. Running without cache.")
+    redis_client = None
 
 headers = {
     'Authorization': f'token {token}',
@@ -20,7 +32,36 @@ headers = {
 }
 
 app = Flask(__name__)
-CORS(app, resources={r"/analyze/*": {"origins": ["http://localhost:3000"]}})
+CORS(app)
+
+# Initialize rate limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
+
+def cache_response(timeout=3600):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not redis_client:
+                return f(*args, **kwargs)
+            
+            cache_key = f"cache:{request.path}:{args}:{kwargs}"
+            cached_response = redis_client.get(cache_key)
+            
+            if cached_response:
+                return jsonify(eval(cached_response))
+            
+            response = f(*args, **kwargs)
+            if isinstance(response, tuple):
+                response_data, status_code = response
+                if status_code == 200:
+                    redis_client.setex(cache_key, timeout, str(response_data))
+            return response
+        return decorated_function
+    return decorator
 
 def debug_request(response):
     print(f"Request to {response.url}")
@@ -35,8 +76,20 @@ def get_all_pages(url):
         try:
             response = requests.get(url, headers=headers, timeout=15)
             debug_request(response)
+            
+            # Handle rate limiting
+            if response.status_code == 403 and 'rate limit exceeded' in response.text.lower():
+                reset_time = int(response.headers.get('X-RateLimit-Reset', 0))
+                wait_time = max(reset_time - time.time(), 0)
+                if wait_time > 0:
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    break
+                    
             if response.status_code != 200:
                 break
+                
             items.extend(response.json())
             url = response.links.get('next', {}).get('url')
             remaining = int(response.headers.get('X-RateLimit-Remaining', 0))
@@ -157,8 +210,14 @@ def analyze_commit_sentiment(commits):
     return analysis
 
 @app.route('/analyze/<username>', methods=['GET'])
+@limiter.limit("30 per minute")
+@cache_response(timeout=3600)  # Cache for 1 hour
 def analyze_github(username):
     try:
+        # Basic input validation
+        if not username or not username.strip():
+            return jsonify({'error': 'Invalid username'}), 400
+
         api_status = requests.get('https://api.github.com', headers=headers, timeout=5)
         if api_status.status_code != 200:
             return jsonify({'error': 'GitHub API unavailable'}), 502
@@ -166,10 +225,14 @@ def analyze_github(username):
         user_response = requests.get(f'https://api.github.com/users/{username}', headers=headers, timeout=10)
         if user_response.status_code == 404:
             return jsonify({'error': 'User not found'}), 404
+        if user_response.status_code == 403:
+            return jsonify({'error': 'GitHub API rate limit exceeded'}), 429
         if user_response.status_code != 200:
             return jsonify({'error': 'GitHub API error'}), user_response.status_code
 
         user_data = user_response.json()
+        
+        # Get repositories with pagination
         repos = get_all_pages(f'https://api.github.com/users/{username}/repos?per_page=100&sort=pushed')
         if not repos:
             return jsonify({'error': 'No public repositories found'}), 404
