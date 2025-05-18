@@ -27,14 +27,14 @@
 - **Data Visualization**: Chart.js, React Calendar Heatmap  
 - **Styling**: TailwindCSS
 
-## 🌟 Core Features
+## Core Features
 
 ### Profile Analytics
 - User profile overview with avatar and join date
 - Repository count and total stars
 - Follower and following statistics
 - Bio and location display
-- Developer personality classification (Night Owl, Weekend Warrior, or Consistent Contributor)
+- Developer personality classification
 
 ### Activity Visualization
 - Weekly commit patterns over the past year
@@ -51,16 +51,15 @@
 - Mobile-responsive design
 - Real-time GitHub API integration
 
-## 🛠️ Technical Implementation
+## Technical Implementation
 
-#### Key Features
 - Real-time GitHub data fetching
 - Rate limit handling
 - Error recovery
 - Responsive design
 - Performance optimized
 
-## 🚀 Getting Started
+## Getting Started
 
 1. Clone the repository
 2. Set up environment variables:
@@ -85,7 +84,8 @@
    npm run dev
    ```
 
-## 📝 Notes
-- Requires a GitHub Personal Access Token
-- Rate limited by GitHub API
-- Optimized for modern browsers
+## Requirements
+- GitHub Personal Access Token
+- Modern web browser
+- Python 3.8+
+- Node.js 14+

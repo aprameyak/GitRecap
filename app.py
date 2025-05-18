@@ -8,24 +8,15 @@ from collections import defaultdict
 from textblob import TextBlob
 import time
 from functools import wraps
-import redis
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import re
 
 load_dotenv()
 token = os.getenv('GITHUB_ACCESS_TOKEN')
-redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 
 if not token:
     raise ValueError("No GITHUB_ACCESS_TOKEN found in .env file")
-
-# Initialize Redis for caching
-try:
-    redis_client = redis.from_url(redis_url)
-except redis.ConnectionError:
-    print("Warning: Redis connection failed. Running without cache.")
-    redis_client = None
 
 headers = {
     'Authorization': f'token {token}',
@@ -35,34 +26,19 @@ headers = {
 app = Flask(__name__)
 CORS(app)
 
-# Initialize rate limiter
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"]
 )
 
-def cache_response(timeout=3600):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if not redis_client:
-                return f(*args, **kwargs)
-            
-            cache_key = f"cache:{request.path}:{args}:{kwargs}"
-            cached_response = redis_client.get(cache_key)
-            
-            if cached_response:
-                return jsonify(eval(cached_response))
-            
-            response = f(*args, **kwargs)
-            if isinstance(response, tuple):
-                response_data, status_code = response
-                if status_code == 200:
-                    redis_client.setex(cache_key, timeout, str(response_data))
-            return response
-        return decorated_function
-    return decorator
+def sanitize_username(username):
+    if not username:
+        return None
+    username = username.strip()
+    if not re.match(r'^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$', username):
+        return None
+    return username
 
 def debug_request(response):
     print(f"Request to {response.url}")
@@ -78,7 +54,6 @@ def get_all_pages(url):
             response = requests.get(url, headers=headers, timeout=15)
             debug_request(response)
             
-            # Handle rate limiting
             if response.status_code == 403 and 'rate limit exceeded' in response.text.lower():
                 reset_time = int(response.headers.get('X-RateLimit-Reset', 0))
                 wait_time = max(reset_time - time.time(), 0)
@@ -209,14 +184,6 @@ def analyze_commit_sentiment(commits):
     analysis['average_polarity'] = round(analysis['average_polarity'] / len(messages), 2)
     analysis['common_words'] = dict(sorted(word_counts.items(), key=lambda x: -x[1])[:10])
     return analysis
-
-def sanitize_username(username):
-    if not username:
-        return None
-    username = username.strip()
-    if not re.match(r'^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$', username):
-        return None
-    return username
 
 @app.route('/analyze/<username>', methods=['GET'])
 @limiter.limit("30 per minute")
