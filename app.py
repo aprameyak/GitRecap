@@ -11,6 +11,7 @@ from functools import wraps
 import redis
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import re
 
 load_dotenv()
 token = os.getenv('GITHUB_ACCESS_TOKEN')
@@ -209,30 +210,41 @@ def analyze_commit_sentiment(commits):
     analysis['common_words'] = dict(sorted(word_counts.items(), key=lambda x: -x[1])[:10])
     return analysis
 
+def sanitize_username(username):
+    if not username:
+        return None
+    username = username.strip()
+    if not re.match(r'^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$', username):
+        return None
+    return username
+
 @app.route('/analyze/<username>', methods=['GET'])
 @limiter.limit("30 per minute")
-@cache_response(timeout=3600)  # Cache for 1 hour
 def analyze_github(username):
     try:
-        # Basic input validation
-        if not username or not username.strip():
-            return jsonify({'error': 'Invalid username'}), 400
+        username = sanitize_username(username)
+        if not username:
+            return jsonify({'error': 'Invalid username format'}), 400
 
-        api_status = requests.get('https://api.github.com', headers=headers, timeout=5)
-        if api_status.status_code != 200:
+        try:
+            api_status = requests.get('https://api.github.com', headers=headers, timeout=5)
+            if api_status.status_code != 200:
+                return jsonify({'error': 'GitHub API unavailable'}), 502
+        except requests.exceptions.RequestException:
             return jsonify({'error': 'GitHub API unavailable'}), 502
 
-        user_response = requests.get(f'https://api.github.com/users/{username}', headers=headers, timeout=10)
-        if user_response.status_code == 404:
-            return jsonify({'error': 'User not found'}), 404
-        if user_response.status_code == 403:
-            return jsonify({'error': 'GitHub API rate limit exceeded'}), 429
-        if user_response.status_code != 200:
-            return jsonify({'error': 'GitHub API error'}), user_response.status_code
+        try:
+            user_response = requests.get(f'https://api.github.com/users/{username}', headers=headers, timeout=10)
+            if user_response.status_code == 404:
+                return jsonify({'error': 'User not found'}), 404
+            if user_response.status_code == 403:
+                return jsonify({'error': 'GitHub API rate limit exceeded'}), 429
+            if user_response.status_code != 200:
+                return jsonify({'error': 'GitHub API error'}), user_response.status_code
+        except requests.exceptions.RequestException:
+            return jsonify({'error': 'Failed to fetch user data'}), 502
 
         user_data = user_response.json()
-        
-        # Get repositories with pagination
         repos = get_all_pages(f'https://api.github.com/users/{username}/repos?per_page=100&sort=pushed')
         if not repos:
             return jsonify({'error': 'No public repositories found'}), 404
@@ -246,26 +258,32 @@ def analyze_github(username):
 
         for repo in repos[:20]:
             if not repo.get('fork', False):
-                langs_response = requests.get(repo['languages_url'], headers=headers, timeout=10)
-                if langs_response.status_code == 200:
-                    repo_langs = langs_response.json()
-                    if repo_langs:
-                        primary_lang = max(repo_langs.items(), key=lambda x: x[1])[0]
-                        language_counts[primary_lang] += 1
+                try:
+                    langs_response = requests.get(repo['languages_url'], headers=headers, timeout=10)
+                    if langs_response.status_code == 200:
+                        repo_langs = langs_response.json()
+                        if repo_langs:
+                            primary_lang = max(repo_langs.items(), key=lambda x: x[1])[0]
+                            language_counts[primary_lang] += 1
+                except requests.exceptions.RequestException:
+                    continue
 
-            commits_url = f"{repo['url']}/commits?since={one_year_ago.isoformat()}&author={username}&per_page=100"
-            commits = get_all_pages(commits_url)
-            all_commits.extend(commits)
+            try:
+                commits_url = f"{repo['url']}/commits?since={one_year_ago.isoformat()}&author={username}&per_page=100"
+                commits = get_all_pages(commits_url)
+                all_commits.extend(commits)
 
-            for commit in commits:
-                if isinstance(commit, dict) and 'commit' in commit:
-                    try:
-                        date = datetime.strptime(commit['commit']['author']['date'], '%Y-%m-%dT%H:%M:%SZ')
-                        days_active.add(date.date())
-                        commit_time_distribution[date.hour] += 1
-                        date_count[date.date().isoformat()] += 1
-                    except (ValueError, KeyError):
-                        continue
+                for commit in commits:
+                    if isinstance(commit, dict) and 'commit' in commit:
+                        try:
+                            date = datetime.strptime(commit['commit']['author']['date'], '%Y-%m-%dT%H:%M:%SZ')
+                            days_active.add(date.date())
+                            commit_time_distribution[date.hour] += 1
+                            date_count[date.date().isoformat()] += 1
+                        except (ValueError, KeyError):
+                            continue
+            except requests.exceptions.RequestException:
+                continue
 
         weekly_commits = get_weekly_commits(all_commits, one_year_ago)
         
@@ -344,9 +362,11 @@ def analyze_github(username):
 
         return jsonify(response_data)
 
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as e:
+        print(f"Network error: {str(e)}")
         return jsonify({'error': 'Network error'}), 502
-    except Exception:
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
         return jsonify({'error': 'Server error'}), 500
 
 if __name__ == '__main__':
