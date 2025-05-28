@@ -58,9 +58,3 @@
 - Error recovery
 - Responsive design
 - Performance optimized
-
-## Requirements
-- GitHub Personal Access Token
-- Modern web browser
-- Python 3.8+
-- Node.js 14+
