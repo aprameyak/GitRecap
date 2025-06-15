@@ -16,12 +16,16 @@ load_dotenv()
 token = os.getenv('GITHUB_ACCESS_TOKEN')
 
 if not token:
-    raise ValueError("No GITHUB_ACCESS_TOKEN found in .env file")
+    print("WARNING: No GITHUB_ACCESS_TOKEN found. API rate limits will be severely restricted.")
+    print("Create a .env file with your GitHub personal access token for better performance.")
+    token = None  # Will use anonymous requests
 
 headers = {
-    'Authorization': f'token {token}',
     'Accept': 'application/vnd.github.v3+json'
 }
+
+if token:
+    headers['Authorization'] = f'token {token}'
 
 app = Flask(__name__)
 CORS(app)
@@ -47,33 +51,60 @@ def debug_request(response):
     if response.status_code != 200:
         print(f"Error response: {response.text[:200]}")
 
-def get_all_pages(url):
+def get_all_pages(url, max_pages=10):
     items = []
-    while url:
+    page_count = 0
+    
+    while url and page_count < max_pages:
         try:
             response = requests.get(url, headers=headers, timeout=15)
             debug_request(response)
+            page_count += 1
             
             if response.status_code == 403 and 'rate limit exceeded' in response.text.lower():
                 reset_time = int(response.headers.get('X-RateLimit-Reset', 0))
                 wait_time = max(reset_time - time.time(), 0)
+                if wait_time > 300:  # Don't wait more than 5 minutes
+                    print("Rate limit exceeded, stopping pagination")
+                    break
                 if wait_time > 0:
-                    time.sleep(wait_time)
+                    time.sleep(min(wait_time, 60))  # Cap wait time at 1 minute
                     continue
                 else:
                     break
                     
             if response.status_code != 200:
+                print(f"API request failed with status {response.status_code}")
                 break
                 
-            items.extend(response.json())
-            url = response.links.get('next', {}).get('url')
+            data = response.json()
+            if not isinstance(data, list):
+                print("Unexpected response format")
+                break
+                
+            items.extend(data)
+            
+            # Prevent infinite loops
+            next_url = response.links.get('next', {}).get('url')
+            if next_url == url:  # Same URL indicates a problem
+                print("Detected potential infinite loop, breaking")
+                break
+            url = next_url
+            
             remaining = int(response.headers.get('X-RateLimit-Remaining', 0))
             if remaining < 10:
                 time.sleep(2)
+                
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {str(e)}")
             break
+        except Exception as e:
+            print(f"Unexpected error during pagination: {str(e)}")
+            break
+            
+    if page_count >= max_pages:
+        print(f"Reached maximum page limit ({max_pages}), stopping pagination")
+        
     return items
 
 def get_language_color(language):
@@ -181,7 +212,10 @@ def analyze_commit_sentiment(commits):
         except Exception:
             continue
 
-    analysis['average_polarity'] = round(analysis['average_polarity'] / len(messages), 2)
+    if len(messages) > 0:
+        analysis['average_polarity'] = round(analysis['average_polarity'] / len(messages), 2)
+    else:
+        analysis['average_polarity'] = 0
     analysis['common_words'] = dict(sorted(word_counts.items(), key=lambda x: -x[1])[:10])
     return analysis
 
@@ -212,7 +246,7 @@ def analyze_github(username):
             return jsonify({'error': 'Failed to fetch user data'}), 502
 
         user_data = user_response.json()
-        repos = get_all_pages(f'https://api.github.com/users/{username}/repos?per_page=100&sort=pushed')
+        repos = get_all_pages(f'https://api.github.com/users/{username}/repos?per_page=100&sort=pushed', max_pages=5)
         if not repos:
             return jsonify({'error': 'No public repositories found'}), 404
 
@@ -223,7 +257,9 @@ def analyze_github(username):
         date_count = defaultdict(int)
         all_commits = []
 
-        for repo in repos[:20]:
+        # Limit to top 10 most recently pushed repos for MVP
+        repos_to_analyze = repos[:10]
+        for repo in repos_to_analyze:
             if not repo.get('fork', False):
                 try:
                     langs_response = requests.get(repo['languages_url'], headers=headers, timeout=10)
@@ -237,7 +273,7 @@ def analyze_github(username):
 
             try:
                 commits_url = f"{repo['url']}/commits?since={one_year_ago.isoformat()}&author={username}&per_page=100"
-                commits = get_all_pages(commits_url)
+                commits = get_all_pages(commits_url, max_pages=3)  # Limit to 300 commits per repo max
                 all_commits.extend(commits)
 
                 for commit in commits:
@@ -337,5 +373,14 @@ def analyze_github(username):
         return jsonify({'error': 'Server error'}), 500
 
 if __name__ == '__main__':
-    from waitress import serve
-    serve(app, host="0.0.0.0", port=5000)
+    port = int(os.getenv('PORT', 5001))
+    host = os.getenv('HOST', '0.0.0.0')
+    
+    if os.getenv('FLASK_ENV') == 'production':
+        from waitress import serve
+        # Production-only environment checks
+        if not os.getenv('GITHUB_ACCESS_TOKEN'):
+            raise ValueError("GITHUB_ACCESS_TOKEN is required in production")
+        serve(app, host=host, port=port, threads=4, url_scheme='https')
+    else:
+        app.run(host=host, port=port, debug=False)
