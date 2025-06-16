@@ -30,6 +30,10 @@ if token:
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+@app.route('/')
+def home():
+    return jsonify({"status": "ok", "message": "GitRecap API is running"})
+
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
@@ -218,10 +222,6 @@ def analyze_commit_sentiment(commits):
         analysis['average_polarity'] = 0
     analysis['common_words'] = dict(sorted(word_counts.items(), key=lambda x: -x[1])[:10])
     return analysis
-
-@app.route('/')
-def home():
-    return jsonify({"status": "ok", "message": "GitRecap API is running"})
 
 @app.route('/analyze/<username>', methods=['GET'])
 @limiter.limit("30 per minute")
