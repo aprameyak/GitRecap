@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { getData } from "@/routes/route";
+import { getData } from "../../routes/route";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
+// @ts-ignore - react-calendar-heatmap doesn't have proper types
 import CalendarHeatmap from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
 import { 
@@ -355,7 +356,7 @@ export default function Display({ username }: DisplayProps) {
               startDate={new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
               endDate={new Date()}
               values={data.stats.activity.contribution_data}
-              classForValue={(value) => {
+              classForValue={(value: any) => {
                 if (!value || !value.count) return 'color-empty';
                 const level = Math.min(4, Math.ceil(value.count / 3));
                 return `color-scale-${level} rounded-sm`;
@@ -449,9 +450,9 @@ export default function Display({ username }: DisplayProps) {
               <h4 className="font-medium text-white/90">Sentiment Breakdown</h4>
               <div className="space-y-3">
                 {[
-                  { type: 'Positive', value: data.sentiment.positive, color: 'bg-green-500' },
-                  { type: 'Neutral', value: data.sentiment.neutral, color: 'bg-yellow-500' },
-                  { type: 'Negative', value: data.sentiment.negative, color: 'bg-red-500' }
+                  { type: 'Positive', value: data.sentiment?.positive || 0, color: 'bg-green-500' },
+                  { type: 'Neutral', value: data.sentiment?.neutral || 0, color: 'bg-yellow-500' },
+                  { type: 'Negative', value: data.sentiment?.negative || 0, color: 'bg-red-500' }
                 ].map((item, i) => (
                   <div key={i}>
                     <div className="flex justify-between text-sm mb-1">
@@ -462,7 +463,7 @@ export default function Display({ username }: DisplayProps) {
                       <div 
                         className={`${item.color} h-2 rounded-full`}
                         style={{ 
-                          width: `${(item.value / (data.sentiment.positive + data.sentiment.neutral + data.sentiment.negative)) * 100}%`
+                          width: `${(item.value / ((data.sentiment?.positive || 0) + (data.sentiment?.neutral || 0) + (data.sentiment?.negative || 0))) * 100}%`
                         }}
                       />
                     </div>

@@ -28,7 +28,7 @@ if token:
     headers['Authorization'] = f'token {token}'
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 limiter = Limiter(
     app=app,
@@ -219,6 +219,10 @@ def analyze_commit_sentiment(commits):
     analysis['common_words'] = dict(sorted(word_counts.items(), key=lambda x: -x[1])[:10])
     return analysis
 
+@app.route('/')
+def home():
+    return jsonify({"status": "ok", "message": "GitRecap API is running"})
+
 @app.route('/analyze/<username>', methods=['GET'])
 @limiter.limit("30 per minute")
 def analyze_github(username):
@@ -373,14 +377,10 @@ def analyze_github(username):
         return jsonify({'error': 'Server error'}), 500
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5001))
+    port = int(os.getenv('PORT', 5000))
     host = os.getenv('HOST', '0.0.0.0')
-    
     if os.getenv('FLASK_ENV') == 'production':
         from waitress import serve
-        # Production-only environment checks
-        if not os.getenv('GITHUB_ACCESS_TOKEN'):
-            raise ValueError("GITHUB_ACCESS_TOKEN is required in production")
-        serve(app, host=host, port=port, threads=4, url_scheme='https')
+        serve(app, host=host, port=port, threads=4)
     else:
-        app.run(host=host, port=port, debug=False)
+        app.run(host=host, port=port, debug=True)
