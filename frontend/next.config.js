@@ -31,6 +31,9 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   trailingSlash: false,
+  experimental: {
+    outputFileTracingRoot: undefined,
+  }
 }
 
 module.exports = nextConfig 
