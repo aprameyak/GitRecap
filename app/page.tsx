@@ -4,6 +4,8 @@ import Display from './components/Display';
 import { TrendingUp, Clock, Users, Star, GitBranch, Calendar } from 'react-feather';
 
 export default function Home() {
+  console.log('GitRecap app is loading...'); // Debug log
+  
   const [username, setUsername] = useState('');
   const [submittedUsername, setSubmittedUsername] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
