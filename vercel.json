@@ -1,7 +1,5 @@
 {
-  "buildCommand": "npm install && npm run build",
-  "outputDirectory": "frontend/.next",
-  "framework": "nextjs",
+  "rootDirectory": "frontend",
   "rewrites": [
     {
       "source": "/api/:path*",
