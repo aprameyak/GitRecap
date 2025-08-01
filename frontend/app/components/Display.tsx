@@ -1,6 +1,15 @@
+"use client";
 import { useState, useEffect } from 'react';
-import { getData } from "../../routes/route";
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+import { 
+  Chart as ChartJS, 
+  CategoryScale, 
+  LinearScale, 
+  BarElement, 
+  Title, 
+  Tooltip, 
+  Legend, 
+  ArcElement 
+} from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 // @ts-ignore - react-calendar-heatmap doesn't have proper types
 import CalendarHeatmap from 'react-calendar-heatmap';
@@ -77,6 +86,24 @@ interface GitHubData {
       other: number;
     };
   };
+}
+
+// Fetch data from the backend API
+async function getData(username: string): Promise<GitHubData | null> {
+  try {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001';
+    const response = await fetch(`${backendUrl}/analyze/${username}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    throw error;
+  }
 }
 
 export default function Display({ username }: DisplayProps) {
@@ -240,355 +267,162 @@ export default function Display({ username }: DisplayProps) {
                 <Calendar size={14} className="mr-1" />
                 Joined {new Date(data.profile.join_date).toLocaleDateString()}
               </span>
+              <span className="flex items-center text-gray-400">
+                <GitBranch size={14} className="mr-1" />
+                {data.stats.repos} Repos
+              </span>
+              <span className="flex items-center text-gray-400">
+                <Star size={14} className="mr-1" />
+                {data.stats.stars} Stars
+              </span>
+              <span className="flex items-center text-gray-400">
+                <Users size={14} className="mr-1" />
+                {data.stats.followers} Followers
+              </span>
+              <span className="flex items-center text-gray-400">
+                <UserPlus size={14} className="mr-1" />
+                {data.stats.following} Following
+              </span>
+            </div>
+          </div>
+          <div className="ml-auto flex items-center space-x-3">
+            <div className="text-gray-400 text-sm flex items-center space-x-1">
+              {getPersonalityIcon()}
+              <span>{data.stats.developer_personality}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        {[
-          { label: 'Repos', value: data.stats.repos, icon: <GitBranch size={16} /> },
-          { label: 'Stars', value: data.stats.stars, icon: <Star size={16} /> },
-          { label: 'Followers', value: data.stats.followers, icon: <Users size={16} /> },
-          { label: 'Following', value: data.stats.following, icon: <UserPlus size={16} /> }
-        ].map((stat, i) => (
-          <div 
-            key={i} 
-            className="bg-slate-800/50 p-3 md:p-4 rounded-lg border border-white/5 hover:border-violet-500/30 transition-all hover:scale-[1.02] group"
-          >
-            <div className="flex items-center gap-2 text-gray-400">
-              <div className="p-1 bg-slate-700/50 rounded group-hover:bg-violet-500/20 transition-colors">
-                {stat.icon}
-              </div>
-              <p className="text-xs md:text-sm">{stat.label}</p>
-            </div>
-            <p className="text-xl md:text-2xl font-bold text-white mt-1">{stat.value}</p>
-          </div>
-        ))}
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <ChartCard icon={<Zap size={20} />} title="Longest Streak" value={`${data.stats.longest_streak} days`} />
+        <ChartCard icon={<Code size={20} />} title="Favorite Language" value={data.stats.favorite_language} />
+        <ChartCard icon={<TrendingUp size={20} />} title="Total Stars" value={`${data.stats.stars}`} />
+        <ChartCard icon={<BarChart2 size={20} />} title="Total Repos" value={`${data.stats.repos}`} />
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        <ChartCard 
-          title="Weekly Commits" 
-          icon={<TrendingUp size={16} />}
-          tooltip="Your commit activity over the past year"
-        >
-          <Bar 
-            data={{
-              labels: Array.from({ length: 52 }, (_, i) => `Week ${i + 1}`),
-              datasets: [{
-                label: 'Commits',
-                data: data.stats.activity.weekly_commits,
-                backgroundColor: 'rgba(139, 92, 246, 0.5)',
-                borderColor: 'rgba(139, 92, 246, 0.8)',
-                borderWidth: 1,
-                borderRadius: 4,
-              }]
-            }} 
-            options={chartOptions} 
-          />
-        </ChartCard>
-
-        <ChartCard 
-          title="Top Languages" 
-          icon={<Code size={16} />}
-          tooltip="Your most used programming languages"
-        >
-          <Pie 
-            data={{
-              labels: data.stats.languages.map(lang => lang.name),
-              datasets: [{
-                data: data.stats.languages.map(lang => lang.percentage),
-                backgroundColor: data.stats.languages.map(lang => lang.color || '#6E40C9'),
-                borderColor: data.stats.languages.map(lang => darkenColor(lang.color || '#6E40C9', 30)),
-                borderWidth: 1
-              }]
-            }} 
-            options={{
-              ...chartOptions,
-              plugins: {
-                ...chartOptions.plugins,
-                legend: {
-                  ...chartOptions.plugins.legend,
-                  position: 'right',
-                  labels: {
-                    ...chartOptions.plugins.legend.labels,
-                    usePointStyle: true,
-                    pointStyle: 'circle',
-                    padding: 16
-                  }
-                }
-              }
-            }} 
-          />
-        </ChartCard>
-
-        <ChartCard 
-          title="Coding Hours" 
-          icon={<Clock size={16} />}
-          tooltip="When you make most of your commits"
-        >
-          <Bar 
-            data={{
-              labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
-              datasets: [{
-                label: 'Commits',
-                data: data.stats.activity.commit_time_distribution,
-                backgroundColor: 'rgba(16, 185, 129, 0.5)',
-                borderColor: 'rgba(16, 185, 129, 0.8)',
-                borderWidth: 1,
-                borderRadius: 4,
-              }]
-            }} 
-            options={chartOptions} 
-          />
-        </ChartCard>
-
-        <ChartCard 
-          title="Contribution Heatmap" 
-          icon={<Zap size={16} />}
-          tooltip="Your daily commit activity over the past year"
-        >
-          <div className="h-[220px] md:h-[250px] -mx-2">
-            <CalendarHeatmap
-              startDate={new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
-              endDate={new Date()}
-              values={data.stats.activity.contribution_data}
-              classForValue={(value: any) => {
-                if (!value || !value.count) return 'color-empty';
-                const level = Math.min(4, Math.ceil(value.count / 3));
-                return `color-scale-${level} rounded-sm`;
+      {/* Charts & Visualizations */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Weekly Commits Bar Chart */}
+        <div className="bg-slate-900/80 rounded-xl p-6">
+          <h3 className="mb-4 font-semibold text-lg text-gray-200">Weekly Commits</h3>
+          <div className="h-48">
+            <Bar
+              data={{
+                labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                datasets: [
+                  {
+                    label: 'Commits',
+                    data: data.stats.activity.weekly_commits,
+                    backgroundColor: 'rgba(139, 92, 246, 0.7)',
+                    borderRadius: 4,
+                    maxBarThickness: 30,
+                  },
+                ],
               }}
-              showWeekdayLabels
-              gutterSize={3}
-              tooltipDataAttrs={(value: any) => ({
-                'data-tooltip': value ? `${value.date}: ${value.count} commit${value.count !== 1 ? 's' : ''}` : 'No data'
-              })}
+              options={chartOptions}
             />
           </div>
-          <div className="flex items-center justify-between mt-3 text-xs text-gray-400 px-2">
-            <span>Less</span>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4].map((level) => (
-                <div 
-                  key={level}
-                  className="w-3 h-3 rounded-sm"
-                  style={{
-                    backgroundColor: `rgba(139, 92, 246, ${0.2 + level * 0.2})`
-                  }}
-                />
-              ))}
-            </div>
-            <span>More</span>
+        </div>
+
+        {/* Languages Pie Chart */}
+        <div className="bg-slate-900/80 rounded-xl p-6">
+          <h3 className="mb-4 font-semibold text-lg text-gray-200">Languages Used</h3>
+          <div className="h-48">
+            <Pie
+              data={{
+                labels: data.stats.languages.map((lang) => lang.name),
+                datasets: [
+                  {
+                    data: data.stats.languages.map((lang) => lang.percentage),
+                    backgroundColor: data.stats.languages.map((lang) => lang.color || '#888'),
+                    borderWidth: 1,
+                    borderColor: '#222',
+                  },
+                ],
+              }}
+              options={{
+                ...chartOptions,
+                plugins: {
+                  ...chartOptions.plugins,
+                  legend: {
+                    ...chartOptions.plugins.legend,
+                    position: 'right',
+                    labels: {
+                      color: 'rgba(255, 255, 255, 0.8)',
+                      font: { size: 12 },
+                    },
+                  },
+                },
+              }}
+            />
           </div>
-        </ChartCard>
+        </div>
+
+        {/* Commit Time Distribution Bar Chart */}
+        <div className="bg-slate-900/80 rounded-xl p-6">
+          <h3 className="mb-4 font-semibold text-lg text-gray-200">Commit Time Distribution</h3>
+          <div className="h-48">
+            <Bar
+              data={{
+                labels: [
+                  '12am', '1am', '2am', '3am', '4am', '5am', '6am',
+                  '7am', '8am', '9am', '10am', '11am', '12pm', '1pm',
+                  '2pm', '3pm', '4pm', '5pm', '6pm', '7pm', '8pm',
+                  '9pm', '10pm', '11pm',
+                ],
+                datasets: [
+                  {
+                    label: 'Commits',
+                    data: data.stats.activity.commit_time_distribution,
+                    backgroundColor: 'rgba(139, 92, 246, 0.8)',
+                    borderRadius: 4,
+                    maxBarThickness: 20,
+                  },
+                ],
+              }}
+              options={chartOptions}
+            />
+          </div>
+        </div>
+
+        {/* Contribution Heatmap */}
+        <div className="bg-slate-900/80 rounded-xl p-6 overflow-x-auto">
+          <h3 className="mb-4 font-semibold text-lg text-gray-200">Contribution Heatmap</h3>
+          <CalendarHeatmap
+            startDate={new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
+            endDate={new Date()}
+            values={data.stats.activity.contribution_data}
+            classForValue={(value: any) => {
+              if (!value || value.count === 0) return 'color-empty';
+              if (value.count < 3) return 'color-scale-1';
+              if (value.count < 6) return 'color-scale-2';
+              if (value.count < 9) return 'color-scale-3';
+              return 'color-scale-4';
+            }}
+            tooltipDataAttrs={(value: any) => ({
+              'data-tip': value
+                ? `${value.date}: ${value.count} contributions`
+                : 'No contributions',
+            })}
+            showWeekdayLabels={true}
+          />
+        </div>
       </div>
-
-      {/* Personality Card */}
-      <div className="bg-gradient-to-r from-slate-800/50 to-slate-900/50 p-6 rounded-xl border border-white/10">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-lg md:text-xl font-semibold text-white mb-1">Coding Personality</h3>
-            <p className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 text-transparent bg-clip-text">
-              {data.stats.developer_personality}
-            </p>
-          </div>
-          <div className="p-2 bg-white/5 rounded-lg border border-white/10">
-            {getPersonalityIcon()}
-          </div>
-        </div>
-        
-        <p className="text-gray-300 mt-3">
-          {data.stats.developer_personality === "Night Owl" 
-            ? "🌙 You do your best work when the moon is out" 
-            : data.stats.developer_personality === "Weekend Warrior" 
-            ? "🏆 Weekends are your time to shine" 
-            : "⏱️ Consistency is your superpower"}
-        </p>
-
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          <div className="bg-white/5 p-4 rounded-lg border border-white/5">
-            <p className="text-sm text-gray-400">Longest Streak</p>
-            <p className="text-xl md:text-2xl font-bold text-white">{data.stats.longest_streak} days</p>
-          </div>
-          <div className="bg-white/5 p-4 rounded-lg border border-white/5">
-            <p className="text-sm text-gray-400">Favorite Language</p>
-            <p className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
-              {data.stats.favorite_language}
-              <span 
-                className="w-2 h-2 rounded-full"
-                style={{ 
-                  backgroundColor: data.stats.languages.find(l => l.name === data.stats.favorite_language)?.color || '#6E40C9'
-                }}
-              />
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Sentiment Analysis */}
-      {data.sentiment && (
-        <div className="bg-gradient-to-r from-indigo-500/10 to-blue-500/10 p-6 rounded-xl border border-white/10">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg md:text-xl font-semibold text-white">Commit Sentiment</h3>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-              data.sentiment.average_polarity > 0.1 
-                ? 'bg-green-500/20 text-green-400' 
-                : data.sentiment.average_polarity < -0.1 
-                  ? 'bg-red-500/20 text-red-400' 
-                  : 'bg-yellow-500/20 text-yellow-400'
-            }`}>
-              {data.sentiment.average_polarity > 0.1 ? 'Positive' : 
-               data.sentiment.average_polarity < -0.1 ? 'Negative' : 'Neutral'} Mood
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="space-y-4">
-              <h4 className="font-medium text-white/90">Sentiment Breakdown</h4>
-              <div className="space-y-3">
-                {[
-                  { type: 'Positive', value: data.sentiment?.positive || 0, color: 'bg-green-500' },
-                  { type: 'Neutral', value: data.sentiment?.neutral || 0, color: 'bg-yellow-500' },
-                  { type: 'Negative', value: data.sentiment?.negative || 0, color: 'bg-red-500' }
-                ].map((item, i) => (
-                  <div key={i}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>{item.type}</span>
-                      <span>{item.value} commits</span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <div 
-                        className={`${item.color} h-2 rounded-full`}
-                        style={{ 
-                          width: `${(item.value / ((data.sentiment?.positive || 0) + (data.sentiment?.neutral || 0) + (data.sentiment?.negative || 0))) * 100}%`
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-medium text-white/90">Commit Types</h4>
-              <div className="grid grid-cols-2 gap-3">
-                {Object.entries(data.sentiment.commit_types).map(([type, count]) => (
-                  <div 
-                    key={type} 
-                    className="bg-white/5 p-3 rounded-lg border border-white/5 hover:border-blue-500/30 transition-colors"
-                  >
-                    <p className="text-sm capitalize text-white/80">{type}</p>
-                    <p className="text-xl font-bold">{count}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-medium text-white/90">Frequent Words</h4>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(data.sentiment.common_words)
-                  .sort((a, b) => b[1] - a[1])
-                  .slice(0, 12)
-                  .map(([word, count]) => (
-                    <span 
-                      key={word} 
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        count > 5 ? 'bg-blue-500/20 text-blue-400' : 
-                        count > 2 ? 'bg-purple-500/20 text-purple-400' : 
-                        'bg-gray-700 text-gray-400'
-                      }`}
-                    >
-                      {word} <span className="opacity-70">{count}</span>
-                    </span>
-                  ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Global Styles */}
-      <style jsx global>{`
-        .react-calendar-heatmap .color-empty {
-          fill: #2d374850;
-        }
-        .react-calendar-heatmap .color-scale-1 {
-          fill: rgba(139, 92, 246, 0.3);
-        }
-        .react-calendar-heatmap .color-scale-2 {
-          fill: rgba(139, 92, 246, 0.5);
-        }
-        .react-calendar-heatmap .color-scale-3 {
-          fill: rgba(139, 92, 246, 0.7);
-        }
-        .react-calendar-heatmap .color-scale-4 {
-          fill: rgba(139, 92, 246, 0.9);
-        }
-        .react-calendar-heatmap text {
-          fill: rgba(255, 255, 255, 0.7);
-          font-size: 8px;
-        }
-      `}</style>
     </div>
   );
 }
 
-function ChartCard({ 
-  title, 
-  children, 
-  icon,
-  tooltip 
-}: { 
-  title: string; 
-  children: React.ReactNode;
-  icon?: React.ReactNode;
-  tooltip?: string;
-}) {
+// Simple reusable card for stats with icon
+function ChartCard({ icon, title, value }: { icon: React.ReactNode; title: string; value: string }) {
   return (
-    <div className="bg-slate-900/50 p-4 md:p-5 rounded-xl border border-white/10 hover:shadow-lg hover:shadow-violet-500/10 transition-all">
-      <div className="flex items-center justify-between mb-3 md:mb-4">
-        <h3 className="text-base md:text-lg font-semibold text-white flex items-center gap-2">
-          {icon && (
-            <span className="bg-violet-500/10 p-1 rounded-lg">
-              {icon}
-            </span>
-          )}
-          {title}
-        </h3>
-        {tooltip && (
-          <div className="group relative">
-            <button className="text-gray-400 hover:text-gray-300">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-              </svg>
-            </button>
-            <div className="absolute z-10 hidden group-hover:block w-48 bg-slate-800 text-sm text-gray-300 p-2 rounded-md shadow-lg right-0">
-              {tooltip}
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="h-[250px] md:h-[280px]">
-        {children}
+    <div className="bg-slate-900/70 rounded-xl p-4 flex items-center space-x-4 border border-white/10">
+      <div className="text-violet-400">{icon}</div>
+      <div>
+        <p className="text-gray-400 text-sm">{title}</p>
+        <p className="text-white text-lg font-semibold">{value}</p>
       </div>
     </div>
   );
-}
-
-function darkenColor(hex: string, amount = 20): string {
-  let r = parseInt(hex.substring(1, 3), 16);
-  let g = parseInt(hex.substring(3, 5), 16);
-  let b = parseInt(hex.substring(5, 7), 16);
-  
-  r = Math.max(0, r - amount);
-  g = Math.max(0, g - amount);
-  b = Math.max(0, b - amount);
-  
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
+} 

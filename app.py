@@ -40,6 +40,91 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
+@app.route('/trending', methods=['GET'])
+@limiter.limit("100 per hour")
+def get_trending_users():
+    """Get trending GitHub users for discovery"""
+    trending_users = [
+        {
+            'username': 'octocat',
+            'name': 'GitHub Octocat',
+            'description': 'GitHub mascot and demo account',
+            'avatar_url': 'https://github.com/octocat.png?size=100',
+            'followers': 10000,
+            'repos': 8
+        },
+        {
+            'username': 'torvalds',
+            'name': 'Linus Torvalds',
+            'description': 'Creator of Linux and Git',
+            'avatar_url': 'https://github.com/torvalds.png?size=100',
+            'followers': 150000,
+            'repos': 2
+        },
+        {
+            'username': 'antirez',
+            'name': 'Salvatore Sanfilippo',
+            'description': 'Creator of Redis',
+            'avatar_url': 'https://github.com/antirez.png?size=100',
+            'followers': 12000,
+            'repos': 15
+        },
+        {
+            'username': 'gvanrossum',
+            'name': 'Guido van Rossum',
+            'description': 'Creator of Python',
+            'avatar_url': 'https://github.com/gvanrossum.png?size=100',
+            'followers': 8000,
+            'repos': 5
+        },
+        {
+            'username': 'jashkenas',
+            'name': 'Jeremy Ashkenas',
+            'description': 'Creator of Backbone.js and CoffeeScript',
+            'avatar_url': 'https://github.com/jashkenas.png?size=100',
+            'followers': 20000,
+            'repos': 25
+        },
+        {
+            'username': 'defunkt',
+            'name': 'Chris Wanstrath',
+            'description': 'GitHub co-founder',
+            'avatar_url': 'https://github.com/defunkt.png?size=100',
+            'followers': 25000,
+            'repos': 30
+        }
+    ]
+    
+    return jsonify({
+        'trending_users': trending_users,
+        'total': len(trending_users)
+    })
+
+@app.route('/stats', methods=['GET'])
+@limiter.limit("50 per hour")
+def get_api_stats():
+    """Get API usage statistics"""
+    return jsonify({
+        'total_requests': 'Tracked via rate limiting',
+        'rate_limit': '30 requests per minute per IP',
+        'features': [
+            'GitHub profile analysis',
+            'Commit pattern analysis',
+            'Language usage statistics',
+            'Activity heatmaps',
+            'Developer personality insights',
+            'Repository analytics'
+        ],
+        'supported_analytics': [
+            'Commit frequency patterns',
+            'Language preferences',
+            'Activity time distribution',
+            'Repository collaboration',
+            'Developer personality types',
+            'Productivity metrics'
+        ]
+    })
+
 def sanitize_username(username):
     if not username:
         return None
@@ -331,6 +416,27 @@ def analyze_github(username):
         favorite_language = top_languages[0]['name'] if top_languages else "None"
         sentiment = analyze_commit_sentiment(all_commits)
 
+        # Calculate additional insights
+        total_repos = len([repo for repo in repos if not repo.get('fork', False)])
+        total_forks = len([repo for repo in repos if repo.get('fork', False)])
+        total_stars = sum(repo.get('stargazers_count', 0) for repo in repos)
+        total_watchers = sum(repo.get('watchers_count', 0) for repo in repos)
+        
+        # Activity patterns
+        active_hours = [i for i, count in enumerate(commit_time_distribution) if count > 0]
+        most_active_hour = max(range(24), key=lambda x: commit_time_distribution[x]) if commit_time_distribution else 0
+        total_active_days = len(days_active)
+        
+        # Repository insights
+        repo_sizes = [repo.get('size', 0) for repo in repos if not repo.get('fork', False)]
+        avg_repo_size = sum(repo_sizes) / len(repo_sizes) if repo_sizes else 0
+        
+        # Collaboration patterns
+        collaboration_score = 0
+        if total_repos > 0:
+            repos_with_contributors = sum(1 for repo in repos if repo.get('forks_count', 0) > 0)
+            collaboration_score = (repos_with_contributors / total_repos) * 100
+        
         response_data = {
             'profile': {
                 'username': username,
@@ -338,29 +444,52 @@ def analyze_github(username):
                 'join_date': user_data.get('created_at', '')[:10],
                 'name': user_data.get('name'),
                 'bio': user_data.get('bio'),
-                'location': user_data.get('location')
+                'location': user_data.get('location'),
+                'company': user_data.get('company'),
+                'blog': user_data.get('blog'),
+                'twitter_username': user_data.get('twitter_username')
             },
             'stats': {
-                'repos': len([repo for repo in repos if not repo.get('fork', False)]),
-                'stars': sum(repo.get('stargazers_count', 0) for repo in repos),
+                'repos': total_repos,
+                'forks': total_forks,
+                'stars': total_stars,
+                'watchers': total_watchers,
                 'followers': user_data.get('followers', 0),
                 'following': user_data.get('following', 0),
                 'languages': top_languages,
+                'avg_repo_size': round(avg_repo_size, 1),
+                'collaboration_score': round(collaboration_score, 1),
                 'activity': {
                     'weekly_commits': weekly_commits,
                     'streak': max_streak,
+                    'current_streak': current_streak,
+                    'total_active_days': total_active_days,
                     'commit_time_distribution': commit_time_distribution,
+                    'most_active_hour': most_active_hour,
+                    'active_hours': active_hours,
                     'contribution_data': [{'date': d, 'count': c} for d, c in date_count.items()],
                     'top_repos': [{
                         'name': repo['name'],
                         'stars': repo.get('stargazers_count', 0),
+                        'forks': repo.get('forks_count', 0),
                         'description': repo.get('description', ''),
-                        'url': repo['html_url']
+                        'url': repo['html_url'],
+                        'language': repo.get('language'),
+                        'size': repo.get('size', 0),
+                        'updated_at': repo.get('updated_at')
                     } for repo in top_repos]
                 },
                 'developer_personality': developer_personality,
                 'longest_streak': max_streak,
-                'favorite_language': favorite_language
+                'favorite_language': favorite_language,
+                'insights': {
+                    'productivity_score': round((total_active_days / 365) * 100, 1) if total_active_days > 0 else 0,
+                    'consistency_score': round((max_streak / 365) * 100, 1) if max_streak > 0 else 0,
+                    'collaboration_level': 'High' if collaboration_score > 50 else 'Medium' if collaboration_score > 20 else 'Low',
+                    'activity_pattern': 'Night Owl' if most_active_hour >= 22 or most_active_hour <= 4 else 'Early Bird' if most_active_hour <= 8 else 'Day Developer',
+                    'project_focus': 'Open Source' if total_stars > 100 else 'Personal Projects' if total_repos > 10 else 'Professional',
+                    'experience_level': 'Veteran' if total_repos > 50 else 'Experienced' if total_repos > 20 else 'Intermediate' if total_repos > 5 else 'Beginner'
+                }
             }
         }
 
