@@ -6,13 +6,64 @@ ENV/
 .Python
 pyvenv.cfg
 
+# Environment files
 .env
 .env.local
 .env.*.local
 .env.development
 .env.test
 .env.production
+.env.backup
+.env.local.backup
+*.env
+*.env.*
+
+# Secrets and tokens
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cert
+token
+tokens/
+credentials/
+*.cred
+
+# API keys and tokens
+*_token
+*_key
+*_secret
+*_password
+
+# Backup files
+*.backup
+*.bak
+*.tmp
+*.temp
 
 __pycache__/
 *.py[cod]
 *$py.class
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Node modules (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
