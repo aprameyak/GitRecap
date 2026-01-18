@@ -76,9 +76,9 @@ export default function Home() {
          <div className="text-center mb-8">
            <div className="flex justify-between items-center mb-4">
              <div></div>
-             <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-500 text-transparent bg-clip-text">
-               GitRecap
-             </h1>
+              <h1 className="text-4xl md:text-6xl font-bold text-white">
+                GitRecap
+              </h1>
              <div>
                {isLoggedIn ? (
                  <button
@@ -130,7 +130,7 @@ export default function Home() {
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-3 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-semibold rounded-lg hover:from-violet-600 hover:to-fuchsia-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 bg-violet-500 text-white font-semibold rounded-lg hover:bg-violet-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Analyzing...' : 'Analyze'}
             </button>

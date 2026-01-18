@@ -238,7 +238,7 @@ export default function Display({ username, userToken }: DisplayProps) {
   return (
     <div className="space-y-6">
       {/* Profile Header */}
-      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-800/80">
+      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-slate-900/80">
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-[length:40px_40px] opacity-5"></div>
         <div className="relative flex flex-col md:flex-row items-center gap-6 p-6 md:p-8">
           <div className="relative group">
@@ -252,7 +252,7 @@ export default function Display({ username, userToken }: DisplayProps) {
             </div>
           </div>
           <div className="text-center md:text-left">
-            <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-500 text-transparent bg-clip-text">
+            <h2 className="text-2xl md:text-3xl font-bold text-white">
               {data.profile.name || data.profile.username}
             </h2>
             {data.profile.bio && (
