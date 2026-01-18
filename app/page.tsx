@@ -24,20 +24,38 @@ export default function Home() {
       setUserToken(token);
       setIsLoggedIn(true);
     }
+
+    // Check for pending username from OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const pendingUsername = urlParams.get('username');
+    if (pendingUsername && token) {
+      setUsername(pendingUsername);
+      setSubmittedUsername(pendingUsername);
+      // Clean URL
+      window.history.replaceState({}, '', '/');
+    }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim()) {
-      setIsLoading(true);
       const cleanUsername = username.trim();
+
+      if (!isLoggedIn) {
+        // Store pending analyze and trigger OAuth
+        localStorage.setItem('gitrecap-pending-analyze', cleanUsername);
+        handleLogin();
+        return;
+      }
+
+      setIsLoading(true);
       setSubmittedUsername(cleanUsername);
-      
+
       // Save to recent searches
       const updated = [cleanUsername, ...recentSearches.filter(s => s !== cleanUsername)].slice(0, 5);
       setRecentSearches(updated);
       localStorage.setItem('gitrecap-recent-searches', JSON.stringify(updated));
-      
+
       setIsLoading(false);
     }
   };
@@ -55,12 +73,6 @@ export default function Home() {
     window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
   };
 
-  const handleLogout = () => {
-    setUserToken(undefined);
-    setIsLoggedIn(false);
-    localStorage.removeItem('gitrecap-github-token');
-  };
-
   const trendingUsers = [
     { username: 'octocat', name: 'GitHub Octocat', description: 'GitHub mascot' },
     { username: 'torvalds', name: 'Linus Torvalds', description: 'Linux creator' },
@@ -72,31 +84,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="container mx-auto px-4 py-8">
-         {/* Header */}
+        {/* Header */}
          <div className="text-center mb-8">
-           <div className="flex justify-between items-center mb-4">
-             <div></div>
-              <h1 className="text-4xl md:text-6xl font-bold text-white">
-                GitRecap
-              </h1>
-             <div>
-               {isLoggedIn ? (
-                 <button
-                   onClick={handleLogout}
-                   className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors"
-                 >
-                   Logout
-                 </button>
-               ) : (
-                 <button
-                   onClick={handleLogin}
-                   className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg transition-colors"
-                 >
-                   Login with GitHub
-                 </button>
-               )}
-             </div>
-           </div>
+           <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
+             GitRecap
+           </h1>
            <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-4">
              Discover your GitHub coding patterns with Spotify Wrapped-style analytics
            </p>

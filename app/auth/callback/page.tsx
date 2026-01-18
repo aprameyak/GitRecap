@@ -30,7 +30,14 @@ export default function Callback() {
         .then(data => {
           if (data.access_token) {
             localStorage.setItem('gitrecap-github-token', data.access_token);
-            router.push('/');
+            const pending = localStorage.getItem('gitrecap-pending-analyze');
+            if (pending) {
+              localStorage.removeItem('gitrecap-pending-analyze');
+              // Redirect back to home with username
+              router.push(`/?username=${encodeURIComponent(pending)}`);
+            } else {
+              router.push('/');
+            }
           } else {
             console.error('Failed to get token:', data);
             router.push('/');
