@@ -19,7 +19,7 @@ export default function Home() {
     if (saved) {
       setRecentSearches(JSON.parse(saved));
     }
-    const token = localStorage.getItem('gitrecap-github-token');
+    const token = sessionStorage.getItem('gitrecap-github-token');
     if (token) {
       setUserToken(token);
       setIsLoggedIn(true);
