@@ -20,12 +20,14 @@ if not token:
     print("Create a .env file with your GitHub personal access token for better performance.")
     token = None  # Will use anonymous requests
 
-headers = {
-    'Accept': 'application/vnd.github.v3+json'
-}
-
-if token:
-    headers['Authorization'] = f'token {token}'
+def get_headers(user_token=None):
+    headers = {
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    token_to_use = user_token or token
+    if token_to_use:
+        headers['Authorization'] = f'token {token_to_use}'
+    return headers
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -140,7 +142,7 @@ def debug_request(response):
     if response.status_code != 200:
         print(f"Error response: {response.text[:200]}")
 
-def get_all_pages(url, max_pages=10):
+def get_all_pages(url, headers, max_pages=10):
     items = []
     page_count = 0
     
@@ -294,7 +296,8 @@ def analyze_commit_sentiment(commits):
             else:
                 analysis['commit_types']['other'] += 1
 
-            for word in blob.words.lower().split():
+            words = re.findall(r'\b\w+\b', message.lower())
+            for word in words:
                 if (word not in stop_words and len(word) > 3 and word.isalpha()):
                     word_counts[word] += 1
 
@@ -316,6 +319,9 @@ def analyze_github(username):
         if not username:
             return jsonify({'error': 'Invalid username format'}), 400
 
+        user_token = request.args.get('token')
+        headers = get_headers(user_token)
+
         try:
             api_status = requests.get('https://api.github.com', headers=headers, timeout=5)
             if api_status.status_code != 200:
@@ -335,7 +341,7 @@ def analyze_github(username):
             return jsonify({'error': 'Failed to fetch user data'}), 502
 
         user_data = user_response.json()
-        repos = get_all_pages(f'https://api.github.com/users/{username}/repos?per_page=100&sort=pushed', max_pages=5)
+        repos = get_all_pages(f'https://api.github.com/users/{username}/repos?per_page=100&sort=pushed', headers, max_pages=5)
         if not repos:
             return jsonify({'error': 'No public repositories found'}), 404
 
@@ -362,7 +368,7 @@ def analyze_github(username):
 
             try:
                 commits_url = f"{repo['url']}/commits?since={one_year_ago.isoformat()}&author={username}&per_page=100"
-                commits = get_all_pages(commits_url, max_pages=3)  # Limit to 300 commits per repo max
+                commits = get_all_pages(commits_url, headers, max_pages=3)  # Limit to 300 commits per repo max
                 all_commits.extend(commits)
 
                 for commit in commits:
