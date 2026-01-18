@@ -14,12 +14,8 @@ import re
 
 load_dotenv()
 
-token = os.getenv('GITHUB_ACCESS_TOKEN')
-
-if not token:
-    print("WARNING: No GITHUB_ACCESS_TOKEN found. API rate limits will be severely restricted.")
-    print("Create a .env file with your GitHub personal access token for better performance.")
-    token = None  # Will use anonymous requests
+# Removed global GitHub access token as per security requirements
+token = None
 
 def get_headers(user_token=None):
     headers = {
