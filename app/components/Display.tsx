@@ -92,7 +92,7 @@ interface GitHubData {
 // Fetch data from the backend API
 async function getData(username: string, userToken?: string): Promise<GitHubData | null> {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
     const url = userToken ? `${backendUrl}/analyze/${username}?token=${userToken}` : `${backendUrl}/analyze/${username}`;
     const response = await fetch(url);
 
