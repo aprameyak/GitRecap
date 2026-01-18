@@ -5,17 +5,24 @@ import { TrendingUp, Clock, Users, Star, GitBranch, Calendar } from 'react-feath
 
 export default function Home() {
   console.log('GitRecap app is loading...'); // Debug log
-  
+
   const [username, setUsername] = useState('');
   const [submittedUsername, setSubmittedUsername] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [userToken, setUserToken] = useState<string | undefined>(undefined);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Load recent searches from localStorage
+  // Load recent searches and token from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('gitrecap-recent-searches');
     if (saved) {
       setRecentSearches(JSON.parse(saved));
+    }
+    const token = localStorage.getItem('gitrecap-github-token');
+    if (token) {
+      setUserToken(token);
+      setIsLoggedIn(true);
     }
   }, []);
 
@@ -40,6 +47,20 @@ export default function Home() {
     setSubmittedUsername(quickUsername);
   };
 
+  const handleLogin = () => {
+    // Redirect to GitHub OAuth
+    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || 'your-client-id';
+    const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback');
+    const scope = 'read:user';
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
+  };
+
+  const handleLogout = () => {
+    setUserToken(undefined);
+    setIsLoggedIn(false);
+    localStorage.removeItem('gitrecap-github-token');
+  };
+
   const trendingUsers = [
     { username: 'octocat', name: 'GitHub Octocat', description: 'GitHub mascot' },
     { username: 'torvalds', name: 'Linus Torvalds', description: 'Linux creator' },
@@ -51,29 +72,49 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-500 text-transparent bg-clip-text mb-4">
-            GitRecap
-          </h1>
-          <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-4">
-            Discover your GitHub coding patterns with Spotify Wrapped-style analytics
-          </p>
-          <div className="flex justify-center items-center gap-6 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <GitBranch className="w-4 h-4" />
-              <span>Repository Analysis</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span>Commit Patterns</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Star className="w-4 h-4" />
-              <span>Activity Insights</span>
-            </div>
-          </div>
-        </div>
+         {/* Header */}
+         <div className="text-center mb-8">
+           <div className="flex justify-between items-center mb-4">
+             <div></div>
+             <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-500 text-transparent bg-clip-text">
+               GitRecap
+             </h1>
+             <div>
+               {isLoggedIn ? (
+                 <button
+                   onClick={handleLogout}
+                   className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors"
+                 >
+                   Logout
+                 </button>
+               ) : (
+                 <button
+                   onClick={handleLogin}
+                   className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg transition-colors"
+                 >
+                   Login with GitHub
+                 </button>
+               )}
+             </div>
+           </div>
+           <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-4">
+             Discover your GitHub coding patterns with Spotify Wrapped-style analytics
+           </p>
+           <div className="flex justify-center items-center gap-6 text-sm text-gray-500">
+             <div className="flex items-center gap-2">
+               <GitBranch className="w-4 h-4" />
+               <span>Repository Analysis</span>
+             </div>
+             <div className="flex items-center gap-2">
+               <Calendar className="w-4 h-4" />
+               <span>Commit Patterns</span>
+             </div>
+             <div className="flex items-center gap-2">
+               <Star className="w-4 h-4" />
+               <span>Activity Insights</span>
+             </div>
+           </div>
+         </div>
 
         {/* Search Form */}
         <div className="max-w-md mx-auto mb-8">
@@ -98,7 +139,7 @@ export default function Home() {
 
         {/* Display Component */}
         {submittedUsername && (
-          <Display username={submittedUsername} />
+          <Display username={submittedUsername} userToken={userToken} />
         )}
 
         {/* Quick Actions */}
