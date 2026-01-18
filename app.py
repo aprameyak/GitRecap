@@ -13,6 +13,7 @@ from flask_limiter.util import get_remote_address
 import re
 
 load_dotenv()
+
 token = os.getenv('GITHUB_ACCESS_TOKEN')
 
 if not token:
