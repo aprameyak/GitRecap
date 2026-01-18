@@ -5,32 +5,57 @@ import { TrendingUp, Clock, Users, Star, GitBranch, Calendar } from 'react-feath
 
 export default function Home() {
   console.log('GitRecap app is loading...'); // Debug log
-  
+
   const [username, setUsername] = useState('');
   const [submittedUsername, setSubmittedUsername] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [userToken, setUserToken] = useState<string | undefined>(undefined);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Load recent searches from localStorage
+  // Load recent searches and token from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('gitrecap-recent-searches');
     if (saved) {
       setRecentSearches(JSON.parse(saved));
+    }
+    const token = localStorage.getItem('gitrecap-github-token');
+    if (token) {
+      setUserToken(token);
+      setIsLoggedIn(true);
+    }
+
+    // Check for pending username from OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const pendingUsername = urlParams.get('username');
+    if (pendingUsername && token) {
+      setUsername(pendingUsername);
+      setSubmittedUsername(pendingUsername);
+      // Clean URL
+      window.history.replaceState({}, '', '/');
     }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim()) {
-      setIsLoading(true);
       const cleanUsername = username.trim();
+
+      if (!isLoggedIn) {
+        // Store pending analyze and trigger OAuth
+        localStorage.setItem('gitrecap-pending-analyze', cleanUsername);
+        handleLogin();
+        return;
+      }
+
+      setIsLoading(true);
       setSubmittedUsername(cleanUsername);
-      
+
       // Save to recent searches
       const updated = [cleanUsername, ...recentSearches.filter(s => s !== cleanUsername)].slice(0, 5);
       setRecentSearches(updated);
       localStorage.setItem('gitrecap-recent-searches', JSON.stringify(updated));
-      
+
       setIsLoading(false);
     }
   };
@@ -38,6 +63,14 @@ export default function Home() {
   const handleQuickSearch = (quickUsername: string) => {
     setUsername(quickUsername);
     setSubmittedUsername(quickUsername);
+  };
+
+  const handleLogin = () => {
+    // Redirect to GitHub OAuth
+    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || 'your-client-id';
+    const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback');
+    const scope = 'read:user';
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
   };
 
   const trendingUsers = [
@@ -52,28 +85,28 @@ export default function Home() {
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-500 text-transparent bg-clip-text mb-4">
-            GitRecap
-          </h1>
-          <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-4">
-            Discover your GitHub coding patterns with Spotify Wrapped-style analytics
-          </p>
-          <div className="flex justify-center items-center gap-6 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <GitBranch className="w-4 h-4" />
-              <span>Repository Analysis</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span>Commit Patterns</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Star className="w-4 h-4" />
-              <span>Activity Insights</span>
-            </div>
-          </div>
-        </div>
+         <div className="text-center mb-8">
+           <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
+             GitRecap
+           </h1>
+           <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-4">
+             Discover your GitHub coding patterns with Spotify Wrapped-style analytics
+           </p>
+           <div className="flex justify-center items-center gap-6 text-sm text-gray-500">
+             <div className="flex items-center gap-2">
+               <GitBranch className="w-4 h-4" />
+               <span>Repository Analysis</span>
+             </div>
+             <div className="flex items-center gap-2">
+               <Calendar className="w-4 h-4" />
+               <span>Commit Patterns</span>
+             </div>
+             <div className="flex items-center gap-2">
+               <Star className="w-4 h-4" />
+               <span>Activity Insights</span>
+             </div>
+           </div>
+         </div>
 
         {/* Search Form */}
         <div className="max-w-md mx-auto mb-8">
@@ -89,7 +122,7 @@ export default function Home() {
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-3 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-semibold rounded-lg hover:from-violet-600 hover:to-fuchsia-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 bg-violet-500 text-white font-semibold rounded-lg hover:bg-violet-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Analyzing...' : 'Analyze'}
             </button>
@@ -98,7 +131,7 @@ export default function Home() {
 
         {/* Display Component */}
         {submittedUsername && (
-          <Display username={submittedUsername} />
+          <Display username={submittedUsername} userToken={userToken} />
         )}
 
         {/* Quick Actions */}

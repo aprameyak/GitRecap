@@ -32,6 +32,7 @@ ChartJS.register(
 
 interface DisplayProps {
   username: string;
+  userToken?: string;
 }
 
 interface GitHubData {
@@ -89,15 +90,16 @@ interface GitHubData {
 }
 
 // Fetch data from the backend API
-async function getData(username: string): Promise<GitHubData | null> {
+async function getData(username: string, userToken?: string): Promise<GitHubData | null> {
   try {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001';
-    const response = await fetch(`${backendUrl}/analyze/${username}`);
-    
+    const url = userToken ? `${backendUrl}/analyze/${username}?token=${userToken}` : `${backendUrl}/analyze/${username}`;
+    const response = await fetch(url);
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -106,7 +108,7 @@ async function getData(username: string): Promise<GitHubData | null> {
   }
 }
 
-export default function Display({ username }: DisplayProps) {
+export default function Display({ username, userToken }: DisplayProps) {
   const [data, setData] = useState<GitHubData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,9 +117,9 @@ export default function Display({ username }: DisplayProps) {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        const result = await getData(username);
+        const result = await getData(username, userToken);
         if (!result) {
           throw new Error('No data received');
         }
@@ -131,7 +133,7 @@ export default function Display({ username }: DisplayProps) {
     };
 
     fetchData();
-  }, [username]);
+  }, [username, userToken]);
 
   if (loading) {
     return (
@@ -236,7 +238,7 @@ export default function Display({ username }: DisplayProps) {
   return (
     <div className="space-y-6">
       {/* Profile Header */}
-      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-800/80">
+      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-slate-900/80">
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-[length:40px_40px] opacity-5"></div>
         <div className="relative flex flex-col md:flex-row items-center gap-6 p-6 md:p-8">
           <div className="relative group">
@@ -250,7 +252,7 @@ export default function Display({ username }: DisplayProps) {
             </div>
           </div>
           <div className="text-center md:text-left">
-            <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-500 text-transparent bg-clip-text">
+            <h2 className="text-2xl md:text-3xl font-bold text-white">
               {data.profile.name || data.profile.username}
             </h2>
             {data.profile.bio && (
