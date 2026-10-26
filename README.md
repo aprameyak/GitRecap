@@ -4,6 +4,16 @@ GitRecap is a "Spotify Wrapped" for GitHub profiles. Enter a username and it pul
 
 Built at HooHacks 2025. Live site: https://gitrecap.vercel.app
 
+## Usage
+
+Open the live site, type a GitHub username, and the recap renders in the browser. The same data is available from the Flask API:
+
+```bash
+curl http://localhost:5000/analyze/octocat
+```
+
+The JSON response has a `profile` object (avatar, name, bio, join date) and a `stats` object with repo, star, and follower counts, `languages`, `activity` (weekly commits, streaks, commit hours, contribution data, top repos), `developer_personality`, and `insights`. A `sentiment` object is included when commit messages were found. Pass `?token=<github-token>` to use your own GitHub rate limit.
+
 ## Features
 
 - Profile summary: repos, stars, forks, followers, longest and current commit streak, favorite language
