@@ -1,6 +1,6 @@
 const nextConfig = {
-  output: "export",
-  images: { unoptimized: true },
+  output: process.env.STATIC_EXPORT ? "export" : undefined,
+  images: { unoptimized: !!process.env.STATIC_EXPORT },
 };
 
 module.exports = nextConfig; 
