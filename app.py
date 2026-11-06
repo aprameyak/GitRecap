@@ -14,8 +14,9 @@ import re
 
 load_dotenv()
 
-# Removed global GitHub access token as per security requirements
-token = None
+# Optional server-side token from the environment (never hardcoded or sent to the browser);
+# without it GitHub allows 60 requests per hour for the whole server
+token = os.environ.get('GITHUB_TOKEN') or None
 
 def get_headers(user_token=None):
     headers = {

@@ -32,7 +32,6 @@ ChartJS.register(
 
 interface DisplayProps {
   username: string;
-  userToken?: string;
 }
 
 interface GitHubData {
@@ -89,10 +88,10 @@ interface GitHubData {
   };
 }
 
-async function getData(username: string, userToken?: string): Promise<GitHubData | null> {
+async function getData(username: string): Promise<GitHubData | null> {
   try {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-    const url = userToken ? `${backendUrl}/analyze/${username}?token=${userToken}` : `${backendUrl}/analyze/${username}`;
+    const url = `${backendUrl}/analyze/${username}`;
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -107,7 +106,7 @@ async function getData(username: string, userToken?: string): Promise<GitHubData
   }
 }
 
-export default function Display({ username, userToken }: DisplayProps) {
+export default function Display({ username }: DisplayProps) {
   const [data, setData] = useState<GitHubData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +117,7 @@ export default function Display({ username, userToken }: DisplayProps) {
       setError(null);
 
       try {
-        const result = await getData(username, userToken);
+        const result = await getData(username);
         if (!result) {
           throw new Error('No data received');
         }
@@ -132,7 +131,7 @@ export default function Display({ username, userToken }: DisplayProps) {
     };
 
     fetchData();
-  }, [username, userToken]);
+  }, [username]);
 
   if (loading) {
     return (

@@ -10,23 +10,15 @@ export default function Home() {
   const [submittedUsername, setSubmittedUsername] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [userToken, setUserToken] = useState<string | undefined>(undefined);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('gitrecap-recent-searches');
     if (saved) {
       setRecentSearches(JSON.parse(saved));
     }
-    const token = sessionStorage.getItem('gitrecap-github-token');
-    if (token) {
-      setUserToken(token);
-      setIsLoggedIn(true);
-    }
-
     const urlParams = new URLSearchParams(window.location.search);
     const pendingUsername = urlParams.get('username');
-    if (pendingUsername && token) {
+    if (pendingUsername) {
       setUsername(pendingUsername);
       setSubmittedUsername(pendingUsername);
       window.history.replaceState({}, '', '/');
@@ -37,12 +29,6 @@ export default function Home() {
     e.preventDefault();
     if (username.trim()) {
       const cleanUsername = username.trim();
-
-      if (!isLoggedIn) {
-        localStorage.setItem('gitrecap-pending-analyze', cleanUsername);
-        handleLogin();
-        return;
-      }
 
       setIsLoading(true);
       setSubmittedUsername(cleanUsername);
@@ -58,13 +44,6 @@ export default function Home() {
   const handleQuickSearch = (quickUsername: string) => {
     setUsername(quickUsername);
     setSubmittedUsername(quickUsername);
-  };
-
-  const handleLogin = () => {
-    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || 'your-client-id';
-    const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback');
-    const scope = 'read:user';
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
   };
 
   const trendingUsers = [
@@ -122,7 +101,7 @@ export default function Home() {
         </div>
 
         {submittedUsername && (
-          <Display username={submittedUsername} userToken={userToken} />
+          <Display username={submittedUsername} />
         )}
 
         {!submittedUsername && (
