@@ -2,7 +2,7 @@
 
 GitRecap is a "Spotify Wrapped" for GitHub profiles. Enter a username and it pulls public data from the GitHub API and shows commit patterns, languages, streaks, top repositories, and a short developer profile.
 
-Built at HooHacks 2025. Live site: https://gitrecap.vercel.app
+Built at HooHacks 2025. Live site: https://gitrecap.aprameyak.workers.dev
 
 ## Usage
 
@@ -66,7 +66,6 @@ There are no automated tests. CI (`.github/workflows/ci.yml`) runs `npm ci` and 
 - `app.py` is the Flask API. `GET /analyze/<username>` fetches the user's profile, repos, and recent commits from the GitHub API (optionally with a `token` query parameter), then computes streaks, language percentages, weekly commits, commit hours, commit sentiment, and derived scores. `GET /trending` returns a fixed list of suggested users and `GET /stats` describes the API.
 - `app/page.tsx` and `app/components/Display.tsx` are the original Next.js frontend, which calls the API and renders the charts.
 - `webapp/` is a second copy of the frontend with Vercel Analytics and a GitHub login step added before searching.
-- `vercel.json` rewrites `/api/*` to the backend hosted at `https://gitrecap.onrender.com`.
 
 ## Project structure
 
