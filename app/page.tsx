@@ -53,7 +53,7 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-500 text-transparent bg-clip-text mb-4">
+          <h1 className="text-4xl md:text-6xl font-bold mb-4 text-stone-100">
             GitRecap
           </h1>
           <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-4">
@@ -83,13 +83,13 @@ export default function Home() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter GitHub username..."
-              className="flex-1 px-4 py-3 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="flex-1 px-4 py-3 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-stone-500 focus:border-transparent"
               disabled={isLoading}
             />
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-3 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-semibold rounded-lg hover:from-violet-600 hover:to-fuchsia-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 text-white font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed bg-stone-800 hover:bg-stone-900"
             >
               {isLoading ? 'Analyzing...' : 'Analyze'}
             </button>
