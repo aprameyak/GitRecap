@@ -2,7 +2,7 @@
 
 GitRecap is a "Spotify Wrapped" for GitHub profiles. Enter a username and it pulls public data from the GitHub API and shows commit patterns, languages, streaks, top repositories, and a short developer profile.
 
-Built at HooHacks 2025. Live site: https://gitrecap.aprameyak.workers.dev
+Built at HooHacks 2025. Live site: https://gitrecap.aprameyakannan.com
 
 ## Usage
 
